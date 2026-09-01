@@ -5,6 +5,7 @@ import {
   mapVariantCopyRow,
   reverseGeocode,
   type BabyProfile,
+  type CategoryIconMeta,
   type HomeDailyBrief,
   type VariantCopyCard,
   type VariantCopyRow,
@@ -31,6 +32,8 @@ export type HomeDailyBriefPageData = {
   observedAtDisplay: string | null;
   /** Variant pros/cons cards for checklist half-sheet, keyed by category code. */
   variantCopyByCategory: Record<string, VariantCopyCard[]>;
+  /** Category icons from DB for checklist cards. */
+  categoryIcons: Record<string, CategoryIconMeta>;
   /** Whether the active baby already has a dressing record for today. */
   savedToday: boolean;
 };
@@ -190,8 +193,17 @@ export async function getHomeDailyBriefPageData(options?: {
         )
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
-      supabase.from("categories").select("code, outfit_slot").eq("is_active", true),
+      supabase.from("categories").select("code, outfit_slot, icon_key, icon_url").eq("is_active", true),
     ]);
+
+  const categoryIcons: Record<string, CategoryIconMeta> = {};
+  for (const row of categoryRows ?? []) {
+    const code = row.code as string;
+    categoryIcons[code] = {
+      iconKey: (row.icon_key as string | null)?.trim() || "",
+      iconUrl: (row.icon_url as string | null)?.trim() || null,
+    };
+  }
 
   const variantCopyByCategory = groupVariantCopyByCategory(
     ((variantRows ?? []) as VariantCopyRow[]).map((row) => mapVariantCopyRow(row))
@@ -217,6 +229,7 @@ export async function getHomeDailyBriefPageData(options?: {
         brief: null,
         observedAtDisplay: null,
         variantCopyByCategory,
+        categoryIcons,
         savedToday: false,
       };
     }
@@ -237,6 +250,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief,
       observedAtDisplay: formatObservedAtDisplay(brief.weather.observedAt),
       variantCopyByCategory,
+      categoryIcons,
       savedToday: false,
     };
   }
@@ -275,6 +289,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief: cached,
       observedAtDisplay: formatObservedAtDisplay(cached.weather.observedAt),
       variantCopyByCategory,
+      categoryIcons,
       savedToday,
     };
   }
@@ -288,6 +303,7 @@ export async function getHomeDailyBriefPageData(options?: {
         brief: cached,
         observedAtDisplay: formatObservedAtDisplay(cached.weather.observedAt),
         variantCopyByCategory,
+        categoryIcons,
         savedToday,
       };
     }
@@ -298,6 +314,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief: null,
       observedAtDisplay: null,
       variantCopyByCategory,
+      categoryIcons,
       savedToday,
     };
   }
@@ -336,6 +353,7 @@ export async function getHomeDailyBriefPageData(options?: {
     brief,
     observedAtDisplay: formatObservedAtDisplay(brief.weather.observedAt),
     variantCopyByCategory,
+    categoryIcons,
     savedToday,
   };
 }

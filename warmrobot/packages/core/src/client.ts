@@ -51,3 +51,8 @@ export {
 } from "./checklist-display";
 export { compactVariantCopy } from "./variant-copy-compact";
 export { formatRecordedDateLabel, summarizeOutfit } from "./dressing-records";
+export {
+  CATEGORY_ICON_KEYS,
+  resolveCategoryIcon,
+  type CategoryIconMeta,
+} from "./category-icons";

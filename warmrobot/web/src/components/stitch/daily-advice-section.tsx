@@ -16,6 +16,7 @@ import type {
   HomeDailyBriefWeather,
   VariantCopyCard,
   WeatherSnapshot,
+  CategoryIconMeta,
 } from "@warmrobot/core/client";
 import {
   adviceFingerprint,
@@ -23,6 +24,7 @@ import {
   checklistDisplayChips,
   formatAdviceConclusion,
   formatAdviceConclusionBlocks,
+  resolveCategoryIcon,
   shouldRecommendDiaper,
   shouldShowDiaperPrompt,
   type ChecklistDisplayChip,
@@ -59,19 +61,6 @@ function weatherForConclusion(weather: HomeDailyBriefWeather): WeatherSnapshot {
   };
 }
 
-function itemIcon(item: AdviceItem): string {
-  if (item.kind === "tip") {
-    if (item.id === "diaper") return "baby_changing_station";
-    if (item.id === "umbrella") return "umbrella";
-    return "tips_and_updates";
-  }
-  if (item.category?.startsWith("outer_")) return "checkroom";
-  if (item.category === "hat") return "apparel";
-  if (item.category === "socks") return "steps";
-  if (item.category?.includes("pant")) return "styler";
-  return "styler";
-}
-
 function cardKey(item: AdviceItem, index: number): string {
   return item.outfitSlot ?? `${item.id}:${index}`;
 }
@@ -83,6 +72,7 @@ function swapKey(zone: "indoor" | "outdoor", item: AdviceItem, index: number): s
 function BentoCard({
   item,
   zone,
+  categoryIcons,
   onOpen,
   onSwapSelect,
   swapOpen,
@@ -90,6 +80,7 @@ function BentoCard({
 }: {
   item: AdviceItem;
   zone: "indoor" | "outdoor" | "extra";
+  categoryIcons?: Record<string, CategoryIconMeta>;
   onOpen?: () => void;
   onSwapSelect?: (selectedIndex: number) => void;
   swapOpen: boolean;
@@ -181,6 +172,7 @@ function BentoCard({
         >
           <CardBody
             item={item}
+            categoryIcons={categoryIcons}
             well={well}
             iconColor={iconColor}
             chips={chips}
@@ -191,6 +183,7 @@ function BentoCard({
         <div className="flex w-full flex-1 flex-col px-0.5 text-center">
           <CardBody
             item={item}
+            categoryIcons={categoryIcons}
             well={well}
             iconColor={iconColor}
             chips={chips}
@@ -225,27 +218,40 @@ function AxisChips({ chips }: { chips: ChecklistDisplayChip[] }) {
 
 function CardBody({
   item,
+  categoryIcons,
   well,
   iconColor,
   chips,
   showPros,
 }: {
   item: AdviceItem;
+  categoryIcons?: Record<string, CategoryIconMeta>;
   well: string;
   iconColor: string;
   chips: ChecklistDisplayChip[];
   showPros: boolean;
 }) {
+  const icon = resolveCategoryIcon(item, categoryIcons);
+
   return (
     <div className="flex w-full flex-col">
       <div className="mb-1.5 flex justify-center">
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${well}`}
         >
-          <MaterialIcon
-            name={itemIcon(item)}
-            className={`text-[22px] font-light ${iconColor}`}
-          />
+          {icon.iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={icon.iconUrl}
+              alt=""
+              className="h-6 w-6 object-contain"
+            />
+          ) : (
+            <MaterialIcon
+              name={icon.iconKey}
+              className={`text-[22px] font-light ${iconColor}`}
+            />
+          )}
         </div>
       </div>
 
@@ -323,6 +329,7 @@ export function DailyAdviceSection({
   weather,
   showChecklist = true,
   variantCopyByCategory = {},
+  categoryIcons = {},
   saveContext = null,
   diaperContext = null,
 }: {
@@ -333,6 +340,8 @@ export function DailyAdviceSection({
   showChecklist?: boolean;
   /** Variant pros/cons cards keyed by category code. */
   variantCopyByCategory?: Record<string, VariantCopyCard[]>;
+  /** Category icon_key / icon_url from DB — overrides built-in seed map. */
+  categoryIcons?: Record<string, CategoryIconMeta>;
   /** When set, the checklist can be saved as today's dressing record. */
   saveContext?: {
     babyId: string;
@@ -544,6 +553,7 @@ export function DailyAdviceSection({
                   key={cardKey(item, index >= 0 ? index : 0)}
                   item={item}
                   zone="indoor"
+                  categoryIcons={categoryIcons}
                   swapOpen={openSwapKey === swapKey("indoor", item, index >= 0 ? index : 0)}
                   onSwapOpenChange={(open) =>
                     setOpenSwapKey(
@@ -576,6 +586,7 @@ export function DailyAdviceSection({
                     key={cardKey(item, index)}
                     item={item}
                     zone="outdoor"
+                    categoryIcons={categoryIcons}
                     swapOpen={openSwapKey === swapKey("outdoor", item, index)}
                     onSwapOpenChange={(open) =>
                       setOpenSwapKey(open ? swapKey("outdoor", item, index) : null)

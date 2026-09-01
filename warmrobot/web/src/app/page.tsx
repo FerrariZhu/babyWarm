@@ -18,7 +18,7 @@ export default async function HomePage({
   const data = await getHomeDailyBriefPageData({ force, at: hourOverride });
   if (!data) redirect("/login");
 
-  const { baby, brief, observedAtDisplay, variantCopyByCategory, savedToday } = data;
+  const { baby, brief, observedAtDisplay, variantCopyByCategory, categoryIcons, savedToday } = data;
 
   return (
     <AppShell
@@ -51,6 +51,7 @@ export default async function HomePage({
               weather={brief.weather}
               showChecklist={Boolean(baby)}
               variantCopyByCategory={variantCopyByCategory}
+              categoryIcons={categoryIcons}
               saveContext={
                 baby
                   ? {

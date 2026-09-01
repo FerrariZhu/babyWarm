@@ -24,3 +24,4 @@ export * from "./checklist-display";
 export * from "./checklist-warmth";
 export * from "./warmth-thresholds";
 export * from "./diaper-status";
+export * from "./category-icons";
