@@ -3,15 +3,20 @@
   "private": true,
   "workspaces": [
     "packages/core",
-    "web"
+    "web",
+    "admin"
   ],
   "scripts": {
     "dev": "npm run dev -w web",
+    "dev:admin": "npm run dev -w admin",
     "dev:clean": "npm run dev:clean -w web",
+    "dev:admin:clean": "npm run dev:clean -w admin",
     "build": "npm run build -w web",
+    "build:admin": "npm run build -w admin",
     "clean": "npm run clean -w web",
     "lint": "npm run lint -w web",
-    "verify": "npm run lint && npm run typecheck -w packages/core && npx tsc --noEmit -p web/tsconfig.json && npm run build",
+    "lint:admin": "npm run lint -w admin",
+    "verify": "npm run lint && npm run lint:admin && npm run typecheck -w packages/core && npx tsc --noEmit -p web/tsconfig.json && npx tsc --noEmit -p admin/tsconfig.json && npm run build && npm run build:admin",
     "import:catalog": "npm run import:catalog -w web"
   }
 }

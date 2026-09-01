@@ -41,10 +41,17 @@ function resolveWeatherLocation(
 
 /** 从 profile 解析位置并拉取天气，失败返回 null */
 export async function getWeatherForProfile(
-  profile: Pick<DbProfile, "city" | "latitude" | "longitude"> | null | undefined
+  profile: Pick<DbProfile, "city" | "latitude" | "longitude"> | null | undefined,
+  options?: { at?: string | null }
 ): Promise<WeatherResult | null> {
   try {
-    return await fetchWeather(resolveWeatherLocation(profile?.latitude, profile?.longitude, profile?.city), cachedFetch);
+    return await fetchWeather(
+      {
+        ...resolveWeatherLocation(profile?.latitude, profile?.longitude, profile?.city),
+        at: options?.at,
+      },
+      cachedFetch
+    );
   } catch (error) {
     console.error("[getWeatherForProfile]", error);
     return null;
@@ -53,13 +60,21 @@ export async function getWeatherForProfile(
 
 /** 供 /api/weather 使用：支持 query 或 profile 回退 */
 export async function getWeatherFromQuery(
-  params: { city?: string | null; latitude?: number | null; longitude?: number | null },
+  params: {
+    city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    at?: string | null;
+  },
   profile?: ProfileWeatherInput | null
 ): Promise<WeatherResult> {
   const lat = params.latitude ?? profile?.latitude;
   const lng = params.longitude ?? profile?.longitude;
   const city = params.city ?? profile?.city;
-  return fetchWeather(resolveWeatherLocation(lat, lng, city), cachedFetch);
+  return fetchWeather(
+    { ...resolveWeatherLocation(lat, lng, city), at: params.at },
+    cachedFetch
+  );
 }
 
 export function weatherCityLabel(

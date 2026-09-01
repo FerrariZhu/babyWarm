@@ -4,82 +4,49 @@ import { getProfilePageData } from "@/lib/profile";
 import { AppShell } from "@/components/stitch/app-shell";
 import { MaterialIcon } from "@/components/stitch/material-icon";
 import { SignOutButton } from "@/components/sign-out-button";
-import { formatBabyAge } from "@/lib/clothing-display";
-import { genderLabel, resolveBabyAvatarUrl, warmthPreferenceLabel } from "@/lib/baby-profile";
+import { formatBabyAge } from "@/lib/baby-age-display";
+import { genderLabel, resolveBabyAvatarUrl, warmthPreferenceLabel, wearsDiaperLabel } from "@/lib/baby-profile";
 
 export default async function ProfilePage() {
   const data = await getProfilePageData();
   if (!data) redirect("/login");
 
-  const { baby, warmthPreference, wardrobeCount, topCategoryLabel } = data;
+  const { baby, warmthPreference } = data;
 
   return (
-    <AppShell babyName={baby?.name} avatarUrl={baby?.avatar_url} babyGender={baby?.gender} headerVariant="centered">
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 overflow-y-auto px-margin-mobile pt-2 pb-32">
+    <AppShell
+      babyName={baby?.name}
+      avatarUrl={baby?.avatar_url}
+      babyGender={baby?.gender}
+      headerVariant="centered"
+      headerTitle="暖宝宝"
+    >
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section-spacing overflow-y-auto px-container-margin pt-2 pb-5">
         {baby ? (
-          <>
-            <section className="relative flex flex-col items-center overflow-hidden rounded-xl bg-surface-container-lowest p-6 cloud-shadow">
-              <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary-fixed opacity-30 blur-2xl" />
-              <div className="z-10 mb-4 h-24 w-24 overflow-hidden rounded-full border-4 border-surface-container-lowest cloud-shadow">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={resolveBabyAvatarUrl(baby.avatar_url, baby.gender)}
-                  alt={baby.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <h2 className="font-display-lg-mobile z-10 mb-1 text-on-surface">{baby.name}</h2>
-              <p className="font-body-lg z-10 mb-6 text-on-surface-variant">
+          <section className="flex items-center gap-stack-gap">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-surface-variant bg-surface-container shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveBabyAvatarUrl(baby.avatar_url, baby.gender)}
+                alt={baby.name}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <h2 className="font-headline-lg-mobile text-on-background">{baby.name}</h2>
+              <p className="font-body-md text-text-soft">
                 {formatBabyAge(baby.birth_date)}
                 {baby.gender ? ` · ${genderLabel(baby.gender)}` : ""}
               </p>
-              <div className="z-10 flex w-full gap-3">
-                <StatTile
-                  label="身高"
-                  value={baby.height_cm ? String(Math.round(Number(baby.height_cm))) : "—"}
-                  unit={baby.height_cm ? "cm" : ""}
-                />
-                <StatTile
-                  label="体重"
-                  value={baby.weight_kg ? Number(baby.weight_kg).toFixed(1) : "—"}
-                  unit={baby.weight_kg ? "kg" : ""}
-                />
-              </div>
-            </section>
-
-            <section>
-              <h3 className="font-headline-md-mobile mb-4 text-on-surface">衣柜概览</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative flex aspect-square flex-col justify-between overflow-hidden rounded-xl bg-surface-container-highest p-5 cloud-shadow">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed">
-                    <MaterialIcon name="checkroom" filled />
-                  </div>
-                  <div>
-                    <p className="font-data-heavy mb-1 text-on-surface">{wardrobeCount}</p>
-                    <p className="font-label-caps text-on-surface-variant">衣柜总量</p>
-                  </div>
-                </div>
-                <div className="relative flex aspect-square flex-col justify-between overflow-hidden rounded-xl bg-tertiary-fixed p-5 cloud-shadow">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-lowest/50 text-on-tertiary-fixed backdrop-blur-sm">
-                    <MaterialIcon name="favorite" filled />
-                  </div>
-                  <div>
-                    <p className="font-data-heavy mb-1 text-on-tertiary-fixed">
-                      {topCategoryLabel ?? "—"}
-                    </p>
-                    <p className="font-label-caps text-on-tertiary-fixed-variant">常穿类别</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </>
+            </div>
+          </section>
         ) : (
-          <section className="rounded-xl bg-surface-container-lowest p-8 text-center cloud-shadow">
-            <MaterialIcon name="child_care" className="mb-3 text-[40px] text-primary/40" />
-            <p className="font-body-md mb-4 text-on-surface-variant">暂无宝宝档案</p>
+          <section className="rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-5 text-center cloud-shadow">
+            <MaterialIcon name="child_care" className="mb-2 text-[32px] text-primary/40" />
+            <p className="font-body-md mb-3 text-on-surface-variant">暂无宝宝档案</p>
             <Link
               href="/profile/add"
-              className="font-label-caps inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary"
+              className="font-label-md inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary"
             >
               <MaterialIcon name="add" className="text-[18px]" />
               添加宝宝
@@ -87,28 +54,61 @@ export default async function ProfilePage() {
           </section>
         )}
 
-        <section>
-          <h3 className="font-headline-md-mobile mb-4 text-on-surface">设置</h3>
-          <div className="flex flex-col gap-2">
-            <SettingsLink
-              href={baby ? "/profile/edit" : "/profile/add"}
-              icon={baby ? "edit" : "add"}
-              iconClass="bg-secondary-fixed text-on-secondary-fixed"
-              label={baby ? "编辑资料" : "添加宝宝"}
-            />
-            <SettingsRow
-              icon="thermostat"
-              iconClass="bg-tertiary-container text-on-tertiary-container"
-              label="偏好设置"
-              subtitle={warmthPreferenceLabel(warmthPreference)}
-            />
-            <SettingsRow
-              icon="help"
-              iconClass="bg-surface-container-high text-on-surface-variant"
-              label="帮助与支持"
-            />
-          </div>
-        </section>
+        {baby && (
+          <section>
+            <h3 className="font-headline-md mb-stack-gap text-on-background">宝宝档案</h3>
+            <div className="flex flex-col gap-4 rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-card-padding shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+              <Field label="姓名">
+                <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
+                  {baby.name}
+                </p>
+              </Field>
+              <Field label="性别">
+                <p className="font-body-md rounded-lg border border-primary bg-indoor-surface px-3 py-2 text-primary">
+                  {genderLabel(baby.gender) || "—"}
+                </p>
+              </Field>
+              <Field label="生日">
+                <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
+                  {baby.birth_date || "—"}
+                </p>
+              </Field>
+              <div className="grid grid-cols-2 gap-widget-gap">
+                <Field label="身高">
+                  <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
+                    {baby.height_cm ? `${Math.round(Number(baby.height_cm))} cm` : "—"}
+                  </p>
+                </Field>
+                <Field label="体重">
+                  <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
+                    {baby.weight_kg ? `${Number(baby.weight_kg).toFixed(1)} kg` : "—"}
+                  </p>
+                </Field>
+              </div>
+              <Field label="是否仍穿尿布">
+                <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
+                  {wearsDiaperLabel(baby.wears_diaper)}
+                </p>
+              </Field>
+              <Field
+                label="冷暖偏好"
+                trailing={
+                  <span className="font-label-sm rounded-sm bg-primary/10 px-2 py-0.5 text-primary">
+                    {warmthPreferenceLabel(warmthPreference)}
+                  </span>
+                }
+              >
+                <p className="font-body-md text-text-soft">可在编辑资料中调整</p>
+              </Field>
+              <Link
+                href="/profile/edit"
+                className="font-headline-md flex min-h-touch-target-min w-full items-center justify-center rounded-xl bg-primary py-4 text-on-primary shadow-sm transition-all hover:opacity-90"
+              >
+                编辑资料
+              </Link>
+            </div>
+          </section>
+        )}
 
         <SignOutButton />
       </main>
@@ -116,85 +116,22 @@ export default async function ProfilePage() {
   );
 }
 
-function StatTile({
+function Field({
   label,
-  value,
-  unit,
+  trailing,
+  children,
 }: {
   label: string;
-  value: string;
-  unit: string;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-surface-variant/50 bg-surface-container-low py-3 px-4">
-      <span className="font-label-caps mb-1 text-outline">{label}</span>
-      <span className="font-data-heavy text-primary">
-        {value}{" "}
-        {unit && <span className="font-body-md font-normal text-on-surface-variant">{unit}</span>}
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <label className="font-label-md text-on-surface-variant">{label}</label>
+        {trailing}
+      </div>
+      {children}
     </div>
-  );
-}
-
-function SettingsLink({
-  href,
-  icon,
-  iconClass,
-  label,
-}: {
-  href: string;
-  icon: string;
-  iconClass: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="active-lift flex w-full items-center justify-between rounded-xl bg-surface-container-lowest p-4 text-left cloud-shadow transition-colors hover:bg-surface-variant/50"
-    >
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClass}`}
-        >
-          <MaterialIcon name={icon} />
-        </div>
-        <span className="font-body-lg text-on-surface">{label}</span>
-      </div>
-      <MaterialIcon name="chevron_right" className="text-outline" />
-    </Link>
-  );
-}
-
-function SettingsRow({
-  icon,
-  iconClass,
-  label,
-  subtitle,
-}: {
-  icon: string;
-  iconClass: string;
-  label: string;
-  subtitle?: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="active-lift flex w-full items-center justify-between rounded-xl bg-surface-container-lowest p-4 text-left cloud-shadow transition-colors hover:bg-surface-variant/50"
-    >
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClass}`}
-        >
-          <MaterialIcon name={icon} />
-        </div>
-        <div>
-          <span className="font-body-lg block text-on-surface">{label}</span>
-          {subtitle && (
-            <span className="font-body-md mt-0.5 block text-on-surface-variant">{subtitle}</span>
-          )}
-        </div>
-      </div>
-      <MaterialIcon name="chevron_right" className="text-outline" />
-    </button>
   );
 }

@@ -8,9 +8,12 @@ import { BabyBirthDateField } from "@/components/stitch/baby-birth-date-field";
 import {
   GENDER_OPTIONS,
   WARMTH_PREFERENCE_OPTIONS,
+  WEARS_DIAPER_OPTIONS,
+  WEARS_DIAPER_PROFILE_TIP,
   resolveBabyAvatarUrl,
   type BabyGender,
   type WarmthPreference,
+  type WearsDiaperChoice,
 } from "@/lib/baby-profile";
 
 export function AddBabyForm({ redirectTo = "/" }: { redirectTo?: string }) {
@@ -22,6 +25,7 @@ export function AddBabyForm({ redirectTo = "/" }: { redirectTo?: string }) {
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [warmthPreference, setWarmthPreference] = useState<WarmthPreference>("neutral");
+  const [wearsDiaper, setWearsDiaper] = useState<WearsDiaperChoice | "">("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +52,10 @@ export function AddBabyForm({ redirectTo = "/" }: { redirectTo?: string }) {
       setError("请输入有效体重");
       return;
     }
+    if (!wearsDiaper) {
+      setError("请选择是否仍穿尿布");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -61,6 +69,7 @@ export function AddBabyForm({ redirectTo = "/" }: { redirectTo?: string }) {
           height_cm: Number(heightCm),
           weight_kg: Number(weightKg),
           warmth_preference: warmthPreference,
+          wears_diaper: wearsDiaper,
           avatar_url: avatarUrl || null,
         }),
       });
@@ -194,6 +203,16 @@ export function AddBabyForm({ redirectTo = "/" }: { redirectTo?: string }) {
           options={WARMTH_PREFERENCE_OPTIONS}
           onChange={setWarmthPreference}
         />
+
+        <div className="space-y-2">
+          <OptionChips<WearsDiaperChoice>
+            label="是否仍穿尿布"
+            value={wearsDiaper}
+            options={WEARS_DIAPER_OPTIONS}
+            onChange={setWearsDiaper}
+          />
+          <p className="font-label-sm ml-2 text-outline">{WEARS_DIAPER_PROFILE_TIP}</p>
+        </div>
 
         {error && (
           <p className="rounded-xl bg-secondary-fixed px-4 py-3 font-body-md text-on-secondary-fixed">{error}</p>

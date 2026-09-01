@@ -19,6 +19,7 @@ const CATEGORY_BASE_WEIGHT: Record<ClothingCategory, number> = {
   sweater: 150,
   fleece_top: 140,
   vest: 90,
+  vest_down: 130,
   outer_uv: 120,
   outer_shell: 180,
   outer_down: 200,

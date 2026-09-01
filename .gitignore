@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-verify/
 .env
 .env.*
 !.env.example
@@ -8,6 +9,30 @@ node_modules/
 *.log
 .tmp/
 *.webp
+sh-thd-*
+
+# 文档与 Agent 配置（本地保留，不上传）
+docs/
+AGENTS.md
+skills-lock.json
+枚举.md
+
+# 产品/设计说明（非运行时代码）
+warmrobot/web/DESIGN.md
+warmrobot/web/PRODUCT.md
+
+# 非 MVP 模块（课程排课后端，与暖宝宝无关）
+warmrobot/backend/
+
+# 演示/测试数据与一次性脚本
+warmrobot/supabase/migrations/_archive/
+warmrobot/supabase/migrations/*seed_mock_data*
+warmrobot/supabase/scripts/
+warmrobot/web/scripts/seed-demo-user.mjs
+warmrobot/web/scripts/legacy/
+warmrobot/web/scripts/test-*.mjs
+warmrobot/web/scripts/import-taobao-catalog.mjs
+warmrobot/web/scripts/generate-catalog-embeddings.mjs
 
 # 非应用代码（本地保留，不提交）
 brd/

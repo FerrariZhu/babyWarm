@@ -23,6 +23,18 @@ export const MAX_WIND_WARMTH_ADJUST = 10;
 export const PRECIP_PROBABILITY_THRESHOLD = 50;
 export const PRECIP_WARMTH_ADJUST = 3;
 
+/**
+ * UV index at or above → outdoor sun protection gear (hat / outer_uv) on warm days
+ * and tip-tag「注意防晒」. WHO「高」档起点。
+ */
+export const UV_OUTDOOR_THRESHOLD = 6;
+
+/** UV index at or above → conclusion copy mentions 防晒（中等强度起）. */
+export const UV_MODERATE_THRESHOLD = 3;
+
+/** Months at or above → stop recommending diaper tip / say 可以不穿. */
+export const DIAPER_OPTIONAL_AGE_MONTHS = 36;
+
 export const YOUNG_BABY_AGE_MONTHS = 3;
 export const YOUNG_BABY_WARMTH_ADJUST = 8;
 export const INFANT_AGE_MONTHS = 6;
@@ -40,6 +52,17 @@ export const ONION_LAYER_COUNT = 3;
 
 export const HAT_FEELS_LIKE_THRESHOLD_C = 15;
 export const HAT_TARGET_WARMTH = 40;
+
+/**
+ * Apparent temperature at or above this is already warm/hot.
+ * Humidity, wind, rain, and young-baby extras then must not add more
+ * clothing warmth (feelsLike already includes weather stress; stacking
+ * caused summer long-sleeves / fleece hats).
+ */
+export const COLD_STRESS_FEELS_LIKE_C = 22;
+
+/** Fleece/wool/down hats only when requiredWarmth reaches the cold band. */
+export const WINTER_HAT_WARMTH_THRESHOLD = 70;
 
 export const SOCKS_FEELS_LIKE_THRESHOLD_C = 10;
 export const SOCKS_TARGET_WARMTH = 25;

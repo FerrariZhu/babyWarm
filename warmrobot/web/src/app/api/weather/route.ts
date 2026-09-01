@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   const city = searchParams.get("city");
   const latParam = searchParams.get("lat") ?? searchParams.get("latitude");
   const lngParam = searchParams.get("lng") ?? searchParams.get("longitude");
+  const at = searchParams.get("at");
 
   const latitude = latParam != null ? Number(latParam) : null;
   const longitude = lngParam != null ? Number(lngParam) : null;
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
         city,
         latitude: latitude != null && !Number.isNaN(latitude) ? latitude : null,
         longitude: longitude != null && !Number.isNaN(longitude) ? longitude : null,
+        at,
       },
       profile
     );

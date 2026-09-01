@@ -5,11 +5,15 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./admin": "./src/admin.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx --test src/advice-copy.test.ts src/advice-tip-tags.test.ts src/category-warmth-ranges.test.ts src/garment-variant-generator.test.ts src/variant-copy.test.ts src/category-advice.test.ts src/category-style-guides.test.ts src/weather.test.ts src/required-warmth.test.ts src/dressing-records.test.ts src/slot-swap.test.ts src/swap-display.test.ts src/checklist-warmth.test.ts src/checklist-display.test.ts src/diaper-status.test.ts"
   },
+
   "devDependencies": {
     "typescript": "^5.7.3"
   }

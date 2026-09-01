@@ -1,5 +1,5 @@
 -- ============================================================
--- Baby Outfit App — Initial Schema for Supabase
+-- 暖宝宝 — Initial Schema for Supabase
 -- Run in: Supabase Dashboard → SQL Editor → New query
 -- ============================================================
 

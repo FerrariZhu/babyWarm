@@ -14,19 +14,25 @@ export function AppShell({
   babyName?: string;
   avatarUrl?: string | null;
   babyGender?: import("@/lib/baby-profile").BabyGender | string | null;
-  headerVariant?: "brand" | "centered";
+  headerVariant?: "brand" | "centered" | "none";
   headerTitle?: string;
   showNav?: boolean;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center bg-background pb-[100px] text-on-background">
-      <AppHeader
-        babyName={babyName}
-        avatarUrl={avatarUrl}
-        babyGender={babyGender}
-        variant={headerVariant}
-        title={headerTitle}
-      />
+    <div
+      className={`flex min-h-screen flex-col items-center bg-background pb-[88px] text-on-background ${
+        headerVariant === "none" ? "pt-safe" : ""
+      }`}
+    >
+      {headerVariant !== "none" && (
+        <AppHeader
+          babyName={babyName}
+          avatarUrl={avatarUrl}
+          babyGender={babyGender}
+          variant={headerVariant}
+          title={headerTitle}
+        />
+      )}
       {children}
       {showNav && <BottomNav />}
     </div>

@@ -5,11 +5,10 @@ import type { BabyGender } from "@/lib/baby-profile";
 type HeaderVariant = "brand" | "centered";
 
 export function AppHeader({
-  babyName,
   avatarUrl,
   babyGender,
   variant = "brand",
-  title = "LittleCompass",
+  title = "暖宝宝",
 }: {
   babyName?: string;
   avatarUrl?: string | null;
@@ -38,21 +37,17 @@ export function AppHeader({
 
   if (variant === "centered") {
     return (
-      <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4">
-        {avatar}
-        <h1 className="font-headline-md-mobile mx-4 flex-1 text-center font-bold tracking-tight text-primary">
-          {title}
-        </h1>
-        {notifyBtn}
+      <header className="sticky top-0 z-40 flex w-full items-center justify-center bg-background px-container-margin pt-safe-offset pb-2.5">
+        <h1 className="font-headline-md text-primary">{title}</h1>
       </header>
     );
   }
 
   return (
-    <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 text-primary">
+    <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-container-margin pt-safe-offset pb-2.5 text-primary">
       <div className="flex items-center gap-3">
         {avatar}
-        <span className="font-display-lg-mobile tracking-tight text-primary">LittleCompass</span>
+        <span className="font-headline-lg-mobile tracking-tight text-primary">{title}</span>
       </div>
       {notifyBtn}
     </header>

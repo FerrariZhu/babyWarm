@@ -9,9 +9,13 @@ import { OptionChips } from "@/components/stitch/option-chips";
 import {
   GENDER_OPTIONS,
   WARMTH_PREFERENCE_OPTIONS,
+  WEARS_DIAPER_OPTIONS,
+  WEARS_DIAPER_PROFILE_TIP,
   resolveBabyAvatarUrl,
+  wearsDiaperChoiceFromDb,
   type BabyGender,
   type WarmthPreference,
+  type WearsDiaperChoice,
 } from "@/lib/baby-profile";
 
 export function EditBabyForm({
@@ -35,6 +39,9 @@ export function EditBabyForm({
   const [warmthPreference, setWarmthPreference] = useState<WarmthPreference>(
     initialWarmthPreference
   );
+  const [wearsDiaper, setWearsDiaper] = useState<WearsDiaperChoice | "">(
+    wearsDiaperChoiceFromDb(baby.wears_diaper)
+  );
   const [avatarUrl, setAvatarUrl] = useState(baby.avatar_url ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +64,10 @@ export function EditBabyForm({
       setError("请输入有效体重");
       return;
     }
+    if (!wearsDiaper) {
+      setError("请选择是否仍穿尿布");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -70,6 +81,7 @@ export function EditBabyForm({
           height_cm: Number(heightCm),
           weight_kg: Number(weightKg),
           warmth_preference: warmthPreference,
+          wears_diaper: wearsDiaper,
           avatar_url: avatarUrl || null,
         }),
       });
@@ -211,6 +223,16 @@ export function EditBabyForm({
           options={WARMTH_PREFERENCE_OPTIONS}
           onChange={setWarmthPreference}
         />
+
+        <div className="space-y-2">
+          <OptionChips<WearsDiaperChoice>
+            label="是否仍穿尿布"
+            value={wearsDiaper}
+            options={WEARS_DIAPER_OPTIONS}
+            onChange={setWearsDiaper}
+          />
+          <p className="font-label-sm ml-2 text-outline">{WEARS_DIAPER_PROFILE_TIP}</p>
+        </div>
 
         {error && (
           <p className="rounded-xl bg-secondary-fixed px-4 py-3 font-body-md text-on-secondary-fixed">{error}</p>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
 import { createClient } from "@/lib/supabase/server";
-import { isBabyGender, isWarmthPreference } from "@/lib/baby-profile";
+import { isBabyGender, isWarmthPreference, isWearsDiaperChoice, wearsDiaperFromChoice } from "@/lib/baby-profile";
 import { suggestBabyCurrentSize } from "@/lib/suggest-size";
 
 export async function POST(request: Request) {
@@ -32,6 +32,11 @@ export async function POST(request: Request) {
   if (!isWarmthPreference(warmthPreference)) {
     return NextResponse.json({ error: "请选择温度偏好" }, { status: 400 });
   }
+  const wearsDiaperRaw = body.wears_diaper != null ? String(body.wears_diaper) : "";
+  if (!isWearsDiaperChoice(wearsDiaperRaw)) {
+    return NextResponse.json({ error: "请选择是否仍穿尿布" }, { status: 400 });
+  }
+  const wearsDiaper = wearsDiaperFromChoice(wearsDiaperRaw);
 
   const heightCm = Number(body.height_cm);
   const weightKg = Number(body.weight_kg);
@@ -56,10 +61,11 @@ export async function POST(request: Request) {
       height_cm: heightCm,
       weight_kg: weightKg,
       avatar_url: body.avatar_url || null,
+      wears_diaper: wearsDiaper,
       current_size_label: suggestedSize,
       current_size_updated_at: suggestedSize ? new Date().toISOString() : null,
     })
-    .select("id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label")
+    .select("id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper")
     .single();
 
   if (babyError) {

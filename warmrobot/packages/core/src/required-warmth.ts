@@ -1,6 +1,7 @@
 import { babyAgeInMonths } from "./baby-age";
 import type { ActivityLevel, BabyProfile, Scenario, TimeSlot, WeatherSnapshot } from "./types";
 import {
+  COLD_STRESS_FEELS_LIKE_C,
   DEFAULT_COLD_FEELS_LIKE_WARMTH,
   FEELS_LIKE_WARMTH_BANDS,
   HUMIDITY_HIGH_THRESHOLD,
@@ -40,21 +41,34 @@ export interface RequiredWarmthInput {
 export function calcRequiredWarmth(input: RequiredWarmthInput): number {
   const { weather, baby, scenario, timeSlot = "morning", variant = "default" } = input;
   let score = mapFeelsLikeToWarmth(weather.feelsLike);
+  const applyColdStressAdjust = weather.feelsLike < COLD_STRESS_FEELS_LIKE_C;
 
-  if (weather.humidity > HUMIDITY_HIGH_THRESHOLD) score += HUMIDITY_HIGH_WARMTH_ADJUST;
-  else if (weather.humidity < HUMIDITY_LOW_THRESHOLD) score += HUMIDITY_LOW_WARMTH_ADJUST;
-
-  if (weather.windSpeed > WIND_SPEED_WARMTH_THRESHOLD) {
-    score += Math.min(MAX_WIND_WARMTH_ADJUST, Math.round(weather.windSpeed * WIND_WARMTH_MULTIPLIER));
+  if (weather.humidity > HUMIDITY_HIGH_THRESHOLD) {
+    if (applyColdStressAdjust) score += HUMIDITY_HIGH_WARMTH_ADJUST;
+  } else if (weather.humidity < HUMIDITY_LOW_THRESHOLD) {
+    score += HUMIDITY_LOW_WARMTH_ADJUST;
   }
 
-  if (weather.precipProbability && weather.precipProbability > PRECIP_PROBABILITY_THRESHOLD) {
+  if (applyColdStressAdjust && weather.windSpeed > WIND_SPEED_WARMTH_THRESHOLD) {
+    score += Math.min(
+      MAX_WIND_WARMTH_ADJUST,
+      Math.round(weather.windSpeed * WIND_WARMTH_MULTIPLIER)
+    );
+  }
+
+  if (
+    applyColdStressAdjust &&
+    weather.precipProbability &&
+    weather.precipProbability > PRECIP_PROBABILITY_THRESHOLD
+  ) {
     score += PRECIP_WARMTH_ADJUST;
   }
 
   const months = babyAgeInMonths(baby.birthDate);
-  if (months < YOUNG_BABY_AGE_MONTHS) score += YOUNG_BABY_WARMTH_ADJUST;
-  else if (months < INFANT_AGE_MONTHS) score += INFANT_WARMTH_ADJUST;
+  if (applyColdStressAdjust) {
+    if (months < YOUNG_BABY_AGE_MONTHS) score += YOUNG_BABY_WARMTH_ADJUST;
+    else if (months < INFANT_AGE_MONTHS) score += INFANT_WARMTH_ADJUST;
+  }
 
   const activityAdjust: Record<ActivityLevel, number> = {
     low: 3,

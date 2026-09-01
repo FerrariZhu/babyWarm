@@ -23,6 +23,10 @@ export interface DbBaby {
   height_cm?: number | null;
   weight_kg?: number | null;
   warmth_preference?: WarmthPreference | null;
+  wears_diaper?: boolean | null;
+  diaper_prompt_last_shown_at?: string | null;
+  diaper_prompt_last_answered_at?: string | null;
+  diaper_prompt_last_answer?: "yes" | "no" | null;
 }
 
 export interface DbClothingItem {

@@ -12,6 +12,7 @@ export type ClothingCategory =
   | "sweater"
   | "fleece_top"
   | "vest"
+  | "vest_down"
   | "outer_uv"
   | "outer_shell"
   | "outer_cotton"
@@ -39,6 +40,8 @@ export interface WeatherSnapshot {
   text: string;
   precipProbability?: number;
   uvIndex?: number;
+  /** Observation time from weather provider (ISO-8601 local or offset). */
+  observedAt?: string;
 }
 
 export interface BabyProfile {
@@ -48,6 +51,10 @@ export interface BabyProfile {
   activityLevel: ActivityLevel;
   currentSizeLabel?: string | null;
   warmthOffset?: number;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  /** null = unknown; false = daytime potty trained / no diaper. */
+  wearsDiaper?: boolean | null;
 }
 
 export interface WardrobeItem {

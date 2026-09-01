@@ -1,79 +1,92 @@
 import { redirect } from "next/navigation";
-import type { Scenario, Variant } from "@warmrobot/core";
-import { getDashboardData } from "@/lib/dashboard";
+import { getHomeDailyBriefPageData } from "@/lib/daily-brief/get-home-daily-brief";
+import { resolveHourOverride } from "@/lib/daily-brief/format";
 import { AppShell } from "@/components/stitch/app-shell";
 import { LiveWeatherSection } from "@/components/stitch/live-weather-section";
-import { DashboardRecommendations } from "@/components/stitch/dashboard-recommendations";
+import { DailyAdviceSection } from "@/components/stitch/daily-advice-section";
 import { MaterialIcon } from "@/components/stitch/material-icon";
-import Link from "next/link";
-
-const SCENARIOS: Scenario[] = ["outdoor", "indoor", "sleep"];
-const VARIANTS: Variant[] = ["default", "warmer", "cooler"];
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ scenario?: string; variant?: string }>;
+  searchParams: Promise<{ refresh?: string; at?: string }>;
 }) {
   const params = await searchParams;
-  const scenario = (SCENARIOS.includes(params.scenario as Scenario)
-    ? params.scenario
-    : "outdoor") as Scenario;
-  const variant = (VARIANTS.includes(params.variant as Variant)
-    ? params.variant
-    : "default") as Variant;
+  const force = params.refresh === "1";
+  const hourOverride = resolveHourOverride(params.at);
 
-  const data = await getDashboardData(scenario);
+  const data = await getHomeDailyBriefPageData({ force, at: hourOverride });
   if (!data) redirect("/login");
 
-  const { baby, profile, wardrobe, weather, weatherCity, recommendations, itemMeta } = data;
+  const { baby, brief, observedAtDisplay, variantCopyByCategory, savedToday } = data;
 
   return (
-    <AppShell babyName={baby?.name} avatarUrl={baby?.avatar_url} babyGender={baby?.gender}>
-      <main className="mt-6 flex w-full max-w-[1200px] flex-col gap-[40px] px-margin-mobile md:px-margin-desktop">
-        {!baby && (
-          <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center cloud-shadow">
-            <MaterialIcon name="child_care" className="mb-3 text-[48px] text-primary/40" />
-            <h2 className="font-headline-md-mobile mb-2 text-on-surface">还没有宝宝档案</h2>
-            <p className="font-body-md mb-6 text-on-surface-variant">
-              添加宝宝信息后即可查看天气并根据衣柜推荐穿搭。
+    <AppShell
+      babyName={baby?.name}
+      avatarUrl={baby?.avatar_url}
+      babyGender={baby?.gender}
+      headerVariant="none"
+    >
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-section-spacing px-container-margin pb-5">
+        {brief && (
+          <>
+            <LiveWeatherSection
+              fallbackWeather={{
+                temp: brief.weather.temp,
+                feelsLike: brief.weather.feelsLike,
+                humidity: brief.weather.humidity,
+                windSpeed: brief.weather.windSpeed,
+                text: brief.weather.conditionText,
+                precipProbability: brief.weather.precipProbability,
+                uvIndex: brief.weather.uvIndex,
+                observedAt: brief.weather.observedAt,
+              }}
+              fallbackLocationLabel={brief.weather.locationLabel}
+              fallbackObservedAtDisplay={observedAtDisplay}
+              requiredWarmth={brief.advice.current.requiredWarmth}
+              selectedHourKey={hourOverride}
+            />
+            <DailyAdviceSection
+              advice={brief.advice}
+              weather={brief.weather}
+              showChecklist={Boolean(baby)}
+              variantCopyByCategory={variantCopyByCategory}
+              saveContext={
+                baby
+                  ? {
+                      babyId: baby.id,
+                      babyName: baby.name,
+                      weather: brief.weather,
+                      alreadySaved: savedToday,
+                    }
+                  : null
+              }
+              diaperContext={
+                baby
+                  ? {
+                      babyId: baby.id,
+                      wearsDiaper: baby.wears_diaper ?? null,
+                      promptState: {
+                        wearsDiaper: baby.wears_diaper ?? null,
+                        lastShownAt: baby.diaper_prompt_last_shown_at ?? null,
+                        lastAnsweredAt: baby.diaper_prompt_last_answered_at ?? null,
+                        lastAnswer: baby.diaper_prompt_last_answer ?? null,
+                      },
+                    }
+                  : null
+              }
+            />
+          </>
+        )}
+
+        {!brief && (
+          <section className="mt-6 rounded-2xl bg-error-container p-8 text-center">
+            <MaterialIcon name="cloud_off" className="mb-3 text-[40px] text-on-error-container" />
+            <h2 className="font-headline-md mb-2 text-on-error-container">暂时无法获取天气</h2>
+            <p className="font-body-md text-on-error-container/90">
+              请检查网络后下拉刷新，或在「我的」中确认定位城市。
             </p>
-            <Link
-              href="/profile/add"
-              className="font-label-caps inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-8 text-on-primary cloud-shadow transition-all hover:opacity-90 active:scale-95"
-            >
-              <MaterialIcon name="add" className="text-[20px]" />
-              添加宝宝
-            </Link>
           </section>
-        )}
-
-        {baby && (
-          <LiveWeatherSection fallbackWeather={weather} fallbackCity={weatherCity ?? profile?.city} />
-        )}
-
-        {baby && wardrobe.length === 0 && (
-          <section className="rounded-xl bg-surface-container-lowest p-8 text-center cloud-shadow">
-            <MaterialIcon name="checkroom" className="mb-3 text-[48px] text-primary/40" />
-            <h2 className="font-headline-md-mobile mb-2 text-on-surface">衣柜还是空的</h2>
-            <p className="font-body-md mb-6 text-on-surface-variant">添加衣物后即可根据天气推荐穿搭。</p>
-            <Link
-              href="/add"
-              className="font-label-caps inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-8 text-on-primary cloud-shadow transition-all hover:opacity-90 active:scale-95"
-            >
-              <MaterialIcon name="add" className="text-[20px]" />
-              添加衣物
-            </Link>
-          </section>
-        )}
-
-        {baby && weather && recommendations.length > 0 && (
-          <DashboardRecommendations
-            recommendations={recommendations}
-            initialVariant={variant}
-            itemMeta={itemMeta}
-            activityLevel={baby.activity_level}
-          />
         )}
       </main>
     </AppShell>

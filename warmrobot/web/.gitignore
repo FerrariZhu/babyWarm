@@ -1,3 +1,5 @@
-# Supabase
-
-Copy `.env.local.example` to `.env.local` and fill in values from Supabase Dashboard → Settings → API.
+# Supabase / local secrets
+# Copy `.env.local.example` to `.env.local` and fill in values from Supabase Dashboard → Settings → API.
+.env.local
+.env*.local
+.env.stitch.local

@@ -9,16 +9,18 @@
     "start": "next start",
     "lint": "next lint",
     "clean": "rm -rf .next",
-    "import:catalog": "node scripts/import-taobao-catalog.mjs",
-    "import:catalog:embeddings": "node scripts/generate-catalog-embeddings.mjs",
-    "test:wardrobe-vision": "node scripts/test-wardrobe-vision.mjs",
-    "test:garment-image": "npx tsx scripts/test-garment-image.mjs",
+    "import:catalog": "node scripts/legacy/import-taobao-catalog.mjs",
+    "import:catalog:embeddings": "node scripts/legacy/generate-catalog-embeddings.mjs",
+    "test:wardrobe-vision": "node scripts/legacy/test-wardrobe-vision.mjs",
+    "test:garment-image": "npx tsx scripts/legacy/test-garment-image.mjs",
     "db:clear": "node scripts/clear-dirty-data.mjs",
     "db:migrate": "node scripts/apply-migration.mjs",
     "db:migrate:enum": "node scripts/apply-migration-enum-spec.mjs",
-    "db:ping": "node scripts/db-ping.mjs"
+    "db:ping": "node scripts/db-ping.mjs",
+    "db:seed-demo": "node scripts/seed-demo-user.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/material-symbols-outlined": "^5.3.3",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "@warmrobot/core": "*",

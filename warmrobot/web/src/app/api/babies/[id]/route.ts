@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { localRecommendedDate } from "@/lib/daily-brief/format";
 import { createClient } from "@/lib/supabase/server";
-import { isBabyGender, isWarmthPreference } from "@/lib/baby-profile";
+import { isBabyGender, isWarmthPreference, isWearsDiaperChoice, wearsDiaperFromChoice } from "@/lib/baby-profile";
 import { suggestBabyCurrentSize } from "@/lib/suggest-size";
 
 export async function PATCH(
@@ -43,6 +44,13 @@ export async function PATCH(
     updates.weight_kg = weightKg;
   }
   if (body.avatar_url !== undefined) updates.avatar_url = body.avatar_url;
+  if (body.wears_diaper !== undefined) {
+    const choice = String(body.wears_diaper);
+    if (!isWearsDiaperChoice(choice)) {
+      return NextResponse.json({ error: "请选择是否仍穿尿布" }, { status: 400 });
+    }
+    updates.wears_diaper = wearsDiaperFromChoice(choice);
+  }
 
   const nextBirthDate =
     updates.birth_date !== undefined ? String(updates.birth_date) : undefined;
@@ -88,6 +96,14 @@ export async function PATCH(
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    if (updates.wears_diaper !== undefined) {
+      await supabase
+        .from("home_daily_briefs")
+        .delete()
+        .eq("baby_id", id)
+        .eq("recommended_date", localRecommendedDate());
+    }
   }
 
   if (warmthPreference != null) {
@@ -109,7 +125,7 @@ export async function PATCH(
 
   const { data, error } = await supabase
     .from("babies")
-    .select("id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label")
+    .select("id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
