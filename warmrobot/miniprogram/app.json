@@ -1,0 +1,4 @@
+{
+  "pages": ["pages/login/index", "pages/home/index"],
+  "window": { "navigationBarTitleText": "暖宝宝", "navigationBarBackgroundColor": "#fff7ef", "navigationBarTextStyle": "black" }
+}

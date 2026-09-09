@@ -2,11 +2,16 @@
 
 import type { AdviceConclusionBlock } from "@warmrobot/core/client";
 import { DiaperConfirmPrompt } from "@/components/stitch/diaper-confirm-prompt";
+import { MaterialIcon } from "./material-icon";
 
-/**
- * Single-card narrative layout: weather lead → diaper + wear → merged tips footer.
- * Avoids stacking multiple bordered sub-modules.
- */
+function tipLines(blocks: AdviceConclusionBlock[]): string[] {
+  return blocks
+    .filter((block) => block.kind === "uv" || block.kind === "rain" || block.kind === "accessory")
+    .map((block) => block.lines[0] ?? block.text)
+    .filter(Boolean);
+}
+
+/** Narrative part of the dressing recommendation: weather summary → diaper guidance → what to wear. */
 export function AdviceConclusionPanel({
   blocks,
   showDiaperPrompt = false,
@@ -23,24 +28,20 @@ export function AdviceConclusionPanel({
   const weather = blocks.find((b) => b.kind === "weather");
   const diaper = blocks.find((b) => b.kind === "diaper");
   const wear = blocks.find((b) => b.kind === "wear");
-  const tips = blocks
-    .filter((b) => b.kind === "uv" || b.kind === "rain" || b.kind === "accessory")
-    .map((b) => b.lines[0] ?? b.text)
-    .filter(Boolean);
-
   const hasBody = Boolean(diaper?.lines[0] || (wear?.lines.length ?? 0) > 0);
 
   return (
-    <article className="flex flex-col gap-2">
+    <>
       {weather?.lines[0] ? (
-        <p className="font-label-md leading-snug text-primary">{weather.lines[0]}</p>
+        <p className="advice-weather">{weather.lines[0]}</p>
       ) : null}
 
+      <article className="advice-quote flex flex-col gap-2">
       {hasBody ? (
         <div className="font-body-md space-y-1.5 leading-[1.55] text-on-surface">
           {diaper?.lines[0] ? (
             <div>
-              <p className="text-on-surface-variant">{diaper.lines[0]}</p>
+              <p className="advice-support">{diaper.lines[0]}</p>
               {showDiaperPrompt && diaperPromptBabyId ? (
                 <DiaperConfirmPrompt
                   babyId={diaperPromptBabyId}
@@ -49,27 +50,43 @@ export function AdviceConclusionPanel({
               ) : null}
             </div>
           ) : null}
-
           {wear && wear.lines.length > 0 ? (
-            <ul className="list-none space-y-1">
+            <ul className="advice-wear">
               {wear.lines.map((line) => (
-                <li
-                  key={line}
-                  className="relative pl-3.5 before:absolute before:top-[0.72em] before:left-0 before:h-[5px] before:w-[5px] before:rounded-full before:bg-primary/45"
-                >
-                  {line}
+                <li key={line}>
+                  {line.split(/(包屁衣|防晒衣|防风开衫|开衫|外套|长袖|短袖|纯棉|袜子|遮阳帽|凉鞋|运动鞋)/g).map((part, index) =>
+                    index % 2 === 1 ? <strong key={index}>{part}</strong> : part
+                  )}
                 </li>
               ))}
             </ul>
           ) : null}
+
         </div>
       ) : null}
 
-      {tips.length > 0 ? (
-        <p className="font-body-md border-t border-surface-variant/35 pt-2 leading-snug text-on-surface-variant">
-          {tips.join(" · ")}
-        </p>
-      ) : null}
-    </article>
+      </article>
+    </>
+  );
+}
+
+/**
+ * Contextual weather and outing reminders are intentionally separate from the
+ * clothing recommendation, so caregivers can scan them as optional tips.
+ */
+export function AdviceTips({ blocks }: { blocks: AdviceConclusionBlock[] }) {
+  const tips = tipLines(blocks);
+  if (tips.length === 0) return null;
+
+  return (
+    <aside className="advice-tips" aria-label="出门小贴士">
+      <div className="advice-tips-heading">
+        <MaterialIcon name="tips_and_updates" aria-hidden="true" />
+        <h3>出门小贴士</h3>
+      </div>
+      <ul>
+        {tips.map((tip) => <li key={tip}>{tip}</li>)}
+      </ul>
+    </aside>
   );
 }

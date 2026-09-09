@@ -438,7 +438,6 @@ export function applySlotSwap(item: AdviceItem, selectedIndex: number): AdviceIt
 
   return {
     ...selected.item,
-    warmthValue: item.warmthValue,
     alternatives: nextAlternatives,
     alternativeGroups: nextGroups,
   };

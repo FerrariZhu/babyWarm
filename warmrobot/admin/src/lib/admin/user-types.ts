@@ -4,6 +4,21 @@ export type UserSignupChannel = (typeof USER_SIGNUP_CHANNELS)[number];
 
 export type AdminUserSource = UserSignupChannel | "manual";
 
+export const USER_LOGIN_CHANNELS = [
+  "email_password",
+  "wechat_miniprogram",
+  "xiaohongshu",
+  "douyin",
+] as const;
+export type UserLoginChannel = (typeof USER_LOGIN_CHANNELS)[number];
+
+const LOGIN_CHANNEL_LABELS: Record<UserLoginChannel, string> = {
+  email_password: "邮箱密码",
+  wechat_miniprogram: "微信小程序",
+  xiaohongshu: "小红书",
+  douyin: "抖音",
+};
+
 const SIGNUP_CHANNEL_LABELS: Record<UserSignupChannel, string> = {
   miniprogram: "小程序",
 };
@@ -41,6 +56,8 @@ export type AdminUserRecord = {
   wechat_openid: string | null;
   wechat_unionid: string | null;
   admin_notes: string | null;
+  last_login_channel: UserLoginChannel | null;
+  last_login_at: string | null;
   created_at: string;
   updated_at: string;
   babies: AdminBabyRecord[];
@@ -164,4 +181,9 @@ export function formatRecordedDate(value: string | null | undefined): string {
 export function sourceLabel(source: AdminUserSource): string {
   if (source === "manual") return "手动录入";
   return SIGNUP_CHANNEL_LABELS[source] ?? source;
+}
+
+export function loginChannelLabel(channel: UserLoginChannel | null | undefined): string {
+  if (!channel) return "未记录";
+  return LOGIN_CHANNEL_LABELS[channel];
 }

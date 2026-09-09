@@ -1,8 +1,8 @@
 import type { AdviceItem } from "./daily-brief-types";
 import type { ClothingCategory } from "./types";
 
-/** Default Material Symbols icon_key per category — mirrors migration 000017 seed. */
-export const CATEGORY_ICON_KEYS: Record<ClothingCategory, string> = {
+/** Old seed values are normalized so existing databases receive the corrected artwork. */
+const LEGACY_CATEGORY_ICON_KEYS: Record<ClothingCategory, string> = {
   bodysuit_short: "checkroom",
   bodysuit_long: "checkroom",
   tshirt_short: "apparel",
@@ -27,9 +27,30 @@ export const CATEGORY_ICON_KEYS: Record<ClothingCategory, string> = {
   hat: "sports_baseball",
   scarf: "styler",
   gloves: "back_hand",
-  socks: "socks",
+  socks: "footprint",
   other: "category",
 };
+
+export const CATEGORY_ICON_KEYS = Object.fromEntries(
+  Object.keys(LEGACY_CATEGORY_ICON_KEYS).map((code) => [code, `garment_${code}`])
+) as Record<ClothingCategory, string>;
+
+const SUPPORTED_SYMBOLS = new Set([
+  "checkroom", "apparel", "layers", "styler", "sunny", "ac_unit", "steps",
+  "beach_access", "hiking", "back_hand", "category", "dry_cleaning", "footprint",
+  "sports_baseball", "umbrella", "tips_and_updates", "baby_changing_station",
+]);
+
+/** Shared by checklist and admin previews; unknown names never become visible text. */
+export function categoryIconKey(code: string, key?: string | null): string {
+  const fallback = Object.hasOwn(CATEGORY_ICON_KEYS, code)
+    ? CATEGORY_ICON_KEYS[code as ClothingCategory] : "category";
+  const candidate = key?.trim();
+  if (!candidate || candidate === LEGACY_CATEGORY_ICON_KEYS[code as ClothingCategory]
+    || candidate === "socks" || candidate === "sweater") return fallback;
+  return Object.values(CATEGORY_ICON_KEYS).includes(candidate) || SUPPORTED_SYMBOLS.has(candidate)
+    ? candidate : fallback;
+}
 
 export type CategoryIconMeta = {
   iconKey: string;
@@ -37,12 +58,12 @@ export type CategoryIconMeta = {
 };
 
 function tipIcon(item: AdviceItem): string {
-  if (item.id === "diaper") return "baby_changing_station";
+  if (item.id === "diaper") return "garment_diaper";
   if (item.id === "umbrella") return "umbrella";
   return "tips_and_updates";
 }
 
-/** Resolve checklist card icon — DB overrides win, then seed map, then generic fallback. */
+/** Preserve custom images and supported overrides while upgrading old seed icons. */
 export function resolveCategoryIcon(
   item: AdviceItem,
   overrides?: Record<string, CategoryIconMeta>
@@ -58,11 +79,12 @@ export function resolveCategoryIcon(
 
   const fromDb = overrides?.[code];
   if (fromDb?.iconUrl?.trim()) {
-    return { iconKey: fromDb.iconKey || "category", iconUrl: fromDb.iconUrl.trim() };
+    return { iconKey: categoryIconKey(code, fromDb.iconKey), iconUrl: fromDb.iconUrl.trim() };
   }
-  if (fromDb?.iconKey?.trim()) {
-    return { iconKey: fromDb.iconKey.trim() };
+  const iconKey = categoryIconKey(code, fromDb?.iconKey);
+  if (code === "hat" && iconKey === CATEGORY_ICON_KEYS.hat) {
+    if (item.hatKind === "sun") return { iconKey: "garment_hat_sun" };
+    if (item.hatKind === "warm") return { iconKey: "garment_hat_warm" };
   }
-
-  return { iconKey: CATEGORY_ICON_KEYS[code] ?? "category" };
+  return { iconKey };
 }

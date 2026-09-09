@@ -13,6 +13,7 @@ export * from "./garment-variant-generator";
 export * from "./variant-copy-compact";
 export * from "./variant-copy";
 export * from "./category-style-guides";
+export * from "./category-guides";
 export * from "./dressing-records";
 export * from "./swap-display";
 export * from "./slot-swap";

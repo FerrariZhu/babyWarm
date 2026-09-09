@@ -1,72 +1,70 @@
-/* impeccable-disable overused-font: Stitch Gentle Guardian typography per DESIGN.md */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #106399;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #5a9bd5;
-  --color-on-primary-container: #003151;
-  --color-primary-fixed: #cee5ff;
-  --color-on-primary-fixed: #001d33;
-  --color-on-primary-fixed-variant: #004a77;
-  --color-primary-fixed-dim: #98cbff;
-  --color-surface-tint: #106399;
+  --color-primary: #476657;
+  --color-on-primary: #fffdfc;
+  --color-primary-container: #dce7de;
+  --color-on-primary-container: #3d5949;
+  --color-primary-fixed: #edf3ef;
+  --color-on-primary-fixed: #344b3f;
+  --color-on-primary-fixed-variant: #476657;
+  --color-primary-fixed-dim: #b6c9bc;
+  --color-surface-tint: #6e8b7c;
 
-  --color-secondary: #3f6840;
+  --color-secondary: #606f4c;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #c0efbc;
-  --color-on-secondary-container: #456e45;
-  --color-secondary-fixed: #c0efbc;
-  --color-on-secondary-fixed: #002106;
-  --color-on-secondary-fixed-variant: #274f2a;
-  --color-secondary-fixed-dim: #a4d2a1;
+  --color-secondary-container: #edf0e3;
+  --color-on-secondary-container: #526044;
+  --color-secondary-fixed: #f2f4ec;
+  --color-on-secondary-fixed: #39482f;
+  --color-on-secondary-fixed-variant: #526044;
+  --color-secondary-fixed-dim: #adb99b;
 
-  --color-tertiary: #805600;
+  --color-tertiary: #806443;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #c38c2c;
-  --color-on-tertiary-container: #412a00;
-  --color-tertiary-fixed: #ffddaf;
-  --color-on-tertiary-fixed: #281800;
-  --color-on-tertiary-fixed-variant: #614000;
-  --color-tertiary-fixed-dim: #f9bc58;
+  --color-tertiary-container: #eaddca;
+  --color-on-tertiary-container: #66533b;
+  --color-tertiary-fixed: #f4ecdf;
+  --color-on-tertiary-fixed: #4c3c28;
+  --color-on-tertiary-fixed-variant: #715b3f;
+  --color-tertiary-fixed-dim: #d8c6a9;
 
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
 
-  --color-background: #f8f9fa;
-  --color-on-background: #191c1d;
-  --color-surface: #f8f9fa;
-  --color-surface-bright: #f8f9fa;
-  --color-on-surface: #191c1d;
-  --color-on-surface-variant: #41474f;
-  --color-surface-variant: #e1e3e4;
-  --color-surface-container: #edeeef;
-  --color-surface-container-low: #f3f4f5;
-  --color-surface-container-high: #e7e8e9;
-  --color-surface-container-highest: #e1e3e4;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-dim: #d9dadb;
-  --color-outline: #717880;
-  --color-outline-variant: #c1c7d1;
-  --color-inverse-surface: #2e3132;
-  --color-inverse-on-surface: #f0f1f2;
-  --color-inverse-primary: #98cbff;
+  --color-background: #faf9f6;
+  --color-on-background: #343b36;
+  --color-surface: #faf9f6;
+  --color-surface-bright: #fffdfc;
+  --color-on-surface: #343b36;
+  --color-on-surface-variant: #626d65;
+  --color-surface-variant: #e5e5de;
+  --color-surface-container: #eeeee7;
+  --color-surface-container-low: #f5f4ee;
+  --color-surface-container-high: #e8e9df;
+  --color-surface-container-highest: #e1e3d8;
+  --color-surface-container-lowest: #fffdfc;
+  --color-surface-dim: #d7d9cf;
+  --color-outline: #737c70;
+  --color-outline-variant: #d1d6c9;
+  --color-inverse-surface: #343b36;
+  --color-inverse-on-surface: #faf9f6;
+  --color-inverse-primary: #b6c9bc;
 
-  --color-indoor-surface: #fdfcf0;
-  --color-outdoor-surface: #f0f7ff;
-  --color-weather-sunny: #ffb347;
-  --color-weather-rainy: #7091b1;
-  --color-weather-uv-alert: #e76f51;
-  --color-weather-windy: #5b7c99;
-  --color-clothing-extra: #a084ca;
-  --color-text-main: #2d3436;
-  --color-text-soft: #636e72;
+  --color-indoor-surface: #f6f3ea;
+  --color-outdoor-surface: #edf3ef;
+  --color-weather-sunny: #887047;
+  --color-weather-rainy: #607c87;
+  --color-weather-uv-alert: #a45240;
+  --color-weather-windy: #5d7569;
+  --color-clothing-extra: #7a6c80;
+  --color-text-main: #343b36;
+  --color-text-soft: #626d65;
 
-  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 
   --radius-sm: 0.25rem;
   --radius-default: 0.5rem;
@@ -116,23 +114,21 @@ body {
 
 .cloud-shadow-active,
 .shadow-active {
-  box-shadow: 0 8px 24px rgba(16, 99, 153, 0.12);
+  box-shadow: 0 8px 24px rgba(71, 102, 87, 0.10);
 }
 
 .glass-weather {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 99, 153, 0.1) 0%,
-    rgba(255, 255, 255, 0.4) 100%
-  );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 24px rgba(16, 99, 153, 0.08);
+  --color-text-soft: #526055;
+  --color-weather-windy: #475e51;
+  --color-weather-rainy: #4c6570;
+  --color-weather-uv-alert: #93432f;
+  background: var(--color-outdoor-surface);
+  background-image: radial-gradient(ellipse at 100% 0%, #eee2ca 0%, transparent 65%),
+    linear-gradient(135deg, #dce8de 12%, #cbdccf 65%, #e5e9d7 100%);
 }
 
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 20px);
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
 }
 
 .pt-safe {
@@ -144,7 +140,7 @@ body {
 }
 
 .input-sunken {
-  box-shadow: inset 0 2px 4px rgba(16, 99, 153, 0.06);
+  box-shadow: inset 0 2px 4px rgba(71, 102, 87, 0.06);
 }
 
 .active-lift:active {
@@ -550,14 +546,234 @@ button {
   }
 }
 
-/* Hide native date picker icon; forms use a custom calendar button */
-.date-input-field::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  display: none;
-  -webkit-appearance: none;
+/* Mobile reading and touch surfaces; native Chinese fonts need no network request. */
+html { color-scheme: light; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+body { margin: 0; line-height: 1.6; }
+::selection { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+:where(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+/* Profile fields show focus on their rounded container instead of the inner input. */
+.baby-profile-form input:focus-visible { outline: none; }
+:where(input, textarea) { caret-color: var(--color-primary); }
+:where(input, textarea)::placeholder { color: var(--color-text-soft); opacity: 1; }
+:where(button, select) { -webkit-tap-highlight-color: transparent; }
+:where(button):disabled { cursor: not-allowed; }
+:where(h1, h2, h3, h4) { text-wrap: balance; }
+:where(p) { overflow-wrap: anywhere; }
+.app-shell { min-height: 100dvh; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+.app-shell > main { max-width: 640px; }
+.login-page { min-height: 100dvh; padding-block: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-bottom)); }
+.login-card { padding: 28px 24px; border-radius: 24px; background: var(--color-surface-container-lowest); box-shadow: 0 12px 40px rgb(35 61 53 / 6%); }
+.login-mascot { width: 88px; height: 88px; margin: 0 auto 16px; padding: 12px; border-radius: 24px; background: var(--color-indoor-surface); }
+.weather-temperature { font-size: clamp(48px, 12vw, 60px); font-weight: 400; line-height: 1.15; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.weather-metrics { border-block: 1px solid rgb(71 102 87 / 12%); padding-block: 10px; }
+.weather-metrics > :not(:last-child) { border-right: 1px solid rgb(71 102 87 / 12%); }
+.garment-card { background: linear-gradient(155deg, #fffdfc 35%, #f8f7f1); border: 1px solid #e9e9e0; }
+.garment-picture { height: 56px; width: 56px; flex-shrink: 0; border-radius: 12px; background-image: linear-gradient(135deg, rgb(255 253 252 / 65%), transparent); }
+.garment-picture > svg, .garment-picture > span { font-size: 38px; }
+.garment-picture > img { width: 36px; height: 36px; }
+.profile-details { gap: 0; }
+.profile-details > div { padding-block: 12px; border-bottom: 1px solid var(--color-surface-container); }
+.profile-details > div:first-child { padding-top: 0; }
+.profile-details > a { margin-top: 20px; }
+.profile-details p.rounded-lg { background: transparent; border: 0; padding: 0; border-radius: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
-.date-input-field::-webkit-inner-spin-button,
-.date-input-field::-webkit-clear-button {
-  display: none;
+/* Approved C eucalyptus + D bean-green palette. Motion stays within the weather area. */
+.home-brand { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px 0; }
+.home-brand h1 { color: var(--color-primary); font-size: 22px; font-weight: 600; letter-spacing: .08em; }
+.home-brand p { color: var(--color-text-soft); font-size: 13px; }
+.weather-hero { padding: 10px 16px 12px; border-radius: 24px; }
+.weather-hero .weather-overview { align-items: center; margin-block: 2px 10px; }
+.weather-artwork { width: 64px; height: 64px; display: grid; place-items: center; flex-shrink: 0; }
+.weather-artwork img { width: 60px; height: 60px; }
+.weather-metrics { border: 0; padding: 0; gap: 6px; }
+.weather-metrics > :not(:last-child) { border-right: 0; }
+.weather-metric-icon { display: grid; place-items: center; width: 24px; height: 24px; margin-bottom: 3px; border-radius: 50%; background: linear-gradient(145deg, #fffdfc, #e3eadd); }
+.weather-metric-icon > span { display: inline-block; }
+.advice-surface {
+  --advice-accent: #8b4e22;
+  padding: 22px 20px;
+  border-radius: 24px;
+  background: linear-gradient(125deg, #f2ebdf 0%, #f7f1e7 60%, #eee5d6 100%);
+  box-shadow: 0 4px 12px rgb(93 70 41 / 4%);
 }
+.advice-surface .advice-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.advice-heading > span { color: var(--advice-accent); font-size: 23px; }
+.advice-quote { border-left: 3px solid var(--advice-accent); padding-left: 15px; }
+.advice-surface .advice-weather { margin: -6px 0 16px; font-size: 14px; line-height: 1.6; color: #66574a; font-weight: 400; }
+.advice-quote .advice-wear { margin-block: 7px 12px; padding: 0; list-style: none; font-size: 18px; line-height: 1.7; font-weight: 600; color: #343b36; }
+.advice-wear li + li { margin-top: 4px; }
+.advice-wear strong { color: var(--advice-accent); font-weight: inherit; }
+.advice-quote .advice-support { font-size: 18px; line-height: 1.7; font-weight: 600; color: #343b36; }
+.advice-tips { padding: 14px 16px; border-radius: 16px; background: var(--color-primary-fixed); color: var(--color-on-surface); }
+.advice-tips-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; color: var(--color-primary); }
+.advice-tips-heading > span { font-size: 18px; }
+.advice-tips-heading h3 { font-size: 14px; line-height: 20px; font-weight: 650; }
+.advice-tips ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.6; color: var(--color-on-surface-variant); }
+.advice-tips li { position: relative; padding-left: 12px; }
+.advice-tips li::before { content: ''; position: absolute; top: .63em; left: 1px; width: 4px; height: 4px; border-radius: 50%; background: var(--color-primary); }
+@media (max-width: 360px) {
+  .advice-surface { padding: 20px 16px; }
+  .advice-quote { padding-left: 12px; }
+  .advice-quote .advice-wear, .advice-quote .advice-support { font-size: 17px; }
+}
+.advice-surface h2 { color: var(--color-on-surface); }
+.dressing-save { border-radius: 12px; background-image: linear-gradient(120deg, #526f5e, #476657 70%); transition: transform 150ms ease-out, opacity 150ms ease-out; }
+.dressing-save:active:not(:disabled) { transform: translateY(1px); }
+@keyframes weather-cloud-drift { 0%, 100% { transform: translate(0, 0); } 35% { transform: translate(4px, -3px); } 70% { transform: translate(-2px, 1px); } }
+@keyframes weather-sun-turn { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(24deg); } }
+@keyframes weather-drop { 0%, 100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-3px) scale(.97, 1.03); } 60% { transform: translateY(2px) scale(1.03, .97); } }
+@keyframes weather-breeze { 0%, 100% { transform: translateX(0); opacity: 1; } 35% { transform: translateX(4px); opacity: .65; } 65% { transform: translateX(-2px); opacity: .85; } }
+@media (prefers-reduced-motion: no-preference) {
+  .weather-artwork img { animation: weather-cloud-drift 4.5s ease-in-out; }
+  .weather-artwork[data-condition="sun"] img { animation-name: weather-sun-turn; }
+  .weather-metric-icon[data-motion="humidity_percentage"] > span { animation: weather-drop 3.6s .2s ease-in-out; }
+  .weather-metric-icon[data-motion="wb_sunny"] > span { animation: weather-sun-turn 4s .3s ease-in-out; }
+  .weather-metric-icon[data-motion="air"] > span { animation: weather-breeze 3.8s .5s ease-in-out; }
+}
+
+/* Compact weather metrics with a separate, self-contained clothing index. */
+.home-page { gap: 12px; }
+.weather-feels-like { font-size: 13px; line-height: 20px; }
+.weather-hero .weather-temperature { font-size: 44px; line-height: 1.05; }
+.weather-metric-cell { min-width: 0; border-radius: 13px; padding: 7px 2px; background: linear-gradient(145deg, rgb(255 253 252 / 80%), rgb(248 247 240 / 55%)); }
+.weather-metric-cell .font-label-md { font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.weather-metric-cell .font-label-sm { font-size: 11px; line-height: 16px; }
+.weather-metric-icon { background: none; }
+.weather-index-panel { display: flex; align-items: center; justify-content: space-between; white-space: nowrap; gap: 12px; margin-top: 8px; padding: 9px 12px; border-radius: 12px; background: rgb(255 253 252 / 22%); }
+.weather-index-heading { display: flex; flex-shrink: 0; align-items: center; gap: 8px; color: var(--color-primary); }
+.weather-index-heading h3 { font-size: 12px; line-height: 18px; font-weight: 600; }
+.weather-index-value { font-size: 20px; line-height: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.weather-index-panel p { flex-shrink: 0; margin: 0; font-size: 11px; line-height: 16px; font-weight: 400; color: #58635b; }
+@media (max-width: 360px) { .weather-index-panel { gap: 8px; padding-inline: 10px; } .weather-index-heading { gap: 6px; } }
+
+/* Shared garment selection: native page controls, branded choice sheet. */
+.garment-picker { display: inline-flex; min-width: 0; max-width: 100%; }
+.garment-picker-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 48px; min-width: 48px; border-radius: 10px; padding: 4px 6px; color: var(--color-primary); font-weight: 600; text-align: left; }
+.garment-picker-trigger > span:first-child { overflow-wrap: anywhere; }
+.garment-picker-trigger--icon { padding: 0; }
+.garment-picker-trigger:hover, .garment-picker-trigger[aria-expanded="true"] { background: var(--color-primary-fixed); }
+.garment-picker-options { display: flex; flex-direction: column; gap: 8px; padding-block: 4px 8px; }
+.garment-picker-option { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 16px; border: 1px solid var(--color-surface-variant); border-radius: 14px; background: var(--color-background); color: var(--color-on-surface); text-align: left; font-size: 16px; line-height: 24px; }
+.garment-picker-option > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.garment-picker-option > span:last-child { flex-shrink: 0; font-size: 22px; color: var(--color-outline); }
+.garment-picker-option[aria-pressed="true"] { border-color: var(--color-primary); background: var(--color-primary-fixed); color: var(--color-primary); font-weight: 600; }
+.garment-picker-option[aria-pressed="true"] > span:last-child { color: var(--color-primary); }
+
+/* Attribute names and selected values form one full-width touch target. */
+.garment-attributes { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 6px; }
+.garment-picker--field { display: flex; width: 100%; }
+.garment-picker--field .garment-picker-trigger { display: grid; grid-template-columns: auto minmax(0, 1fr) 16px; width: 100%; gap: 6px; padding: 8px; min-height: 48px; border: 0; background: transparent; border-radius: 0; color: var(--color-on-surface-variant); font-size: 13px; line-height: 20px; }
+.garment-field-label { color: var(--color-on-surface-variant); font-weight: 400; white-space: nowrap; }
+.garment-field-value { color: var(--color-on-surface-variant); font-weight: 400; text-align: right; overflow-wrap: anywhere; }
+.garment-picker--field .garment-picker-trigger > .material-symbols-outlined { font-size: 16px; }
+.garment-picker--field .garment-picker-trigger:hover, .garment-picker--field .garment-picker-trigger[aria-expanded="true"] { background: transparent; }
+.garment-attribute-static { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px; font-size: 13px; line-height: 20px; text-align: left; }
+.garment-attribute-static > span:first-child { color: var(--color-on-surface-variant); }
+.garment-attribute-static > span:last-child { text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 360px) {
+  .garment-picker--field .garment-picker-trigger { gap: 4px; padding-inline: 6px; font-size: 12px; }
+}
+
+.garment-choice-popover { position: fixed; z-index: 70; overflow-y: auto; overscroll-behavior: contain; padding: 6px; border: 1px solid var(--color-outline-variant); border-radius: 14px; background: var(--color-surface-container-lowest); box-shadow: 0 8px 28px rgb(35 61 53 / 14%); }
+.garment-choice-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: 9px; font-size: 14px; line-height: 22px; color: var(--color-on-surface); text-align: left; }
+.garment-choice-option > span:first-child { overflow-wrap: anywhere; }
+.garment-choice-option > span:last-child:not(:first-child) { flex-shrink: 0; font-size: 20px; }
+.garment-choice-option[aria-selected="true"] { background: var(--color-primary-fixed); color: var(--color-primary); font-weight: 600; }
+.garment-choice-option:hover { background: var(--color-primary-fixed); }
+.garment-choice-option:focus-visible { outline-offset: -2px; }
+
+/* Compact cards: independent attributes sit side by side. */
+.garment-attributes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; margin-top: 2px; }
+.garment-picker--field .garment-picker-trigger { grid-template-columns: minmax(0, 1fr) 14px; grid-template-rows: auto auto; gap: 0 2px; min-height: 44px; padding: 2px 0; font-size: 12px; line-height: 18px; text-align: left; }
+.garment-field-label { grid-column: 1 / -1; }
+.garment-field-value { text-align: left; }
+.garment-picker--field .garment-picker-trigger > .material-symbols-outlined { font-size: 14px; }
+.garment-attribute-static { display: flex; flex-direction: column; gap: 0; padding: 2px 0; font-size: 12px; line-height: 18px; }
+.garment-attribute-static > span:last-child { text-align: left; }
+.garment-card > div:first-child .garment-picker-trigger--icon { min-height: 40px; min-width: 40px; }
+/* Attribute controls use the established green hierarchy without extra surfaces. */
+.garment-picker--field .garment-field-label { color: var(--color-secondary); }
+.garment-picker--field .garment-field-value { color: var(--color-primary); font-weight: 600; }
+.garment-picker--field .garment-picker-trigger > .material-symbols-outlined { color: var(--color-primary); }
+
+/* Reference-led finishing pass: milk paper, restrained type, clear weather accents. */
+.home-page { gap: 16px; }
+.home-brand { padding: 14px 3px 0; }
+.home-brand h1 { color: var(--color-on-surface); font-size: 18px; font-weight: 700; letter-spacing: 0; }
+.home-brand p { padding: 3px 10px; border: 1px solid var(--color-surface-variant); border-radius: 999px; font-size: 11px; }
+.weather-hero.glass-weather { padding: 12px 16px 16px; background: radial-gradient(ellipse at 92% 0%, #edf0d3 0%, transparent 58%), linear-gradient(160deg, #e5edde, #eee7d8); border-radius: 24px; }
+.weather-context-row { gap: 6px; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid rgb(71 102 87 / 10%); }
+.weather-context-row > span { display: none; }
+.weather-context-row button { position: relative; isolation: isolate; padding-inline: 8px; gap: 3px; }
+.weather-context-row button::before { content: ''; position: absolute; inset: 9px 0; z-index: -1; border-radius: 999px; background: rgb(255 253 252 / 65%); }
+.weather-context-row button > span { font-size: 11px; }
+.weather-context-row button > .material-symbols-outlined { font-size: 14px; }
+.weather-hero .weather-overview { margin-bottom: 14px; }
+.weather-hero .weather-temperature { color: #243c31; font-size: 48px; letter-spacing: -.06em; }
+.weather-temperature-unit { margin-left: 3px; color: var(--color-primary); font-size: 28px; letter-spacing: -.03em; }
+.weather-feels-like { font-size: 12px; }
+.weather-metrics { gap: 8px; }
+.weather-metric-cell { min-height: 78px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 16px; background: rgb(255 253 252 / 92%); }
+.weather-metric-icon[data-motion="humidity_percentage"] > :is(span, svg) { color: #187d86; }
+.weather-metric-icon[data-motion="wb_sunny"] > :is(span, svg) { color: #b65a20; }
+.weather-metric-icon[data-motion="air"] > :is(span, svg) { color: #387caa; }
+.weather-metric-cell .font-label-sm { font-size: 10px; }
+.weather-metric-cell .font-label-md { font-size: 11px; color: var(--color-on-surface); }
+.weather-footer { margin-top: 12px; padding: 12px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 16px; background: rgb(255 253 252 / 68%); }
+.weather-footer .weather-index-panel { gap: 12px; margin: 0; padding: 0; background: none; border-radius: 0; white-space: normal; }
+.weather-index-heading { gap: 6px; color: var(--color-on-surface); }
+.weather-index-heading h3 { font-size: 11px; font-weight: 400; }
+.weather-index-value { font-size: 20px; font-weight: 650; }
+.weather-index-panel p { flex: 1; min-width: 0; font-size: 10px; line-height: 16px; text-align: left; }
+.weather-footer [aria-label="天气提醒"] { margin-top: 10px; }
+.weather-footer [aria-label="天气提醒"] > span { font-size: 10px; }
+.advice-surface { padding: 18px; border: 1px solid #eddfca; border-radius: 22px; background: #f7efe3; box-shadow: 0 4px 16px rgb(93 70 41 / 3%); }
+.advice-surface .advice-heading { gap: 8px; margin-bottom: 12px; font-size: 16px; font-weight: 650; }
+.advice-heading > span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: #eee0c9; font-size: 16px; }
+.advice-surface .advice-weather { margin: 0 0 14px; font-size: 12px; }
+.advice-quote { border-left-width: 2px; padding-left: 12px; gap: 4px; }
+.advice-quote .advice-wear, .advice-quote .advice-support { font-size: 14px; line-height: 1.8; font-weight: 400; }
+.advice-quote .advice-wear { margin-block: 4px 0; }
+.advice-wear strong { font-weight: 600; }
+.advice-tips { padding: 13px 14px; border-radius: 14px; }
+.advice-tips-heading { margin-bottom: 5px; }
+.advice-tips-heading h3 { font-size: 13px; }
+.advice-tips ul { font-size: 12px; line-height: 1.65; }
+.outfit-checklist { gap: 14px; padding-top: 2px; }
+.outfit-checklist > div:first-child h3 { font-size: 18px; font-weight: 700; }
+.dressing-save { min-height: 40px; border-radius: 999px; padding-inline: 14px; font-size: 12px; }
+.outfit-group { gap: 10px; }
+.outfit-group + .outfit-group { margin-top: 6px; }
+.outfit-group h4 { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; }
+.outfit-group h4::before { content: ''; width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: var(--color-primary); }
+.outfit-group[data-zone="outdoor"] h4::before { background: var(--color-tertiary); }
+.garment-card { border: 0; border-radius: 18px; background: var(--color-surface-container-lowest); box-shadow: 0 6px 18px rgb(35 61 53 / 3%); padding: 9px 12px 10px; }
+.garment-card .garment-picture { background-image: none; }
+.garment-card .garment-picture > span { font-size: 32px; }
+.garment-card > div:first-child > span { font-size: 10px; border: 0; padding: 2px 7px; }
+.garment-card > div:first-child { margin-bottom: 0; }
+.garment-card > div:first-child .garment-picker-trigger--icon { margin-block: -2px; }
+.garment-card button[aria-haspopup="dialog"] { font-weight: 600; }
+.garment-card .text-text-soft { font-size: 10px; line-height: 15px; }
+.garment-card p { font-size: 11px; line-height: 18px; }
+.garment-card .garment-field-label, .garment-card .garment-field-value { font-size: 11px; }
+
+@media (prefers-reduced-motion: no-preference) { .weather-artwork[data-condition="sun"] > svg { animation: weather-sun-turn 4s ease-in-out; } }
+.weather-context-row > button { flex-shrink: 0; }
+.weather-context-row > div button { width: 100%; }
+.weather-context-row > div button > .truncate { flex: 1; }
+
+/* Let the index occupy the full height beside the explanation and reminders. */
+.weather-footer .weather-index-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+.weather-index-description { min-width: 0; }
+.weather-footer .weather-index-heading { min-width: 76px; flex-direction: column; justify-content: center; gap: 4px; }
+.weather-footer .weather-index-heading h3 { font-size: 12px; line-height: 18px; }
+.weather-footer .weather-index-value { font-size: 40px; line-height: 1; font-weight: 650; letter-spacing: -.03em; }
+/* Keep attribute text and chevrons close without shrinking the tap area. */
+.garment-attributes { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 14px; row-gap: 2px; margin-top: 0; }
+.garment-picker--field { width: auto; max-width: calc(50% - 7px); }
+.garment-picker--field .garment-picker-trigger { width: auto; min-width: 0; grid-template-columns: minmax(0, auto) 14px; column-gap: 3px; row-gap: 0; padding-block: 0; line-height: 16px; align-content: center; }
+.garment-attribute-static { padding-block: 0; line-height: 16px; }

@@ -82,8 +82,8 @@ export function SaveDressingRecordButton({
         disabled={busy}
         className={
           inline
-            ? "font-label-md inline-flex min-h-touch-target-min shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-on-primary transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
-            : "font-label-md inline-flex min-h-touch-target-min w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary transition-opacity disabled:opacity-60"
+            ? "dressing-save font-label-md inline-flex min-h-touch-target-min shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-on-primary transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+            : "dressing-save font-label-md inline-flex min-h-touch-target-min w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary transition-opacity disabled:opacity-60"
         }
       >
         <MaterialIcon

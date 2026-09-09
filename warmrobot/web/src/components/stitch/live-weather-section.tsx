@@ -389,7 +389,7 @@ export function LiveWeatherSection({
           <div className="flex flex-col items-center gap-2 rounded-xl bg-error-container px-4 py-3 text-center">
             <p className="font-body-md text-on-error-container">{errorMessage}</p>
             <p className="font-label-sm text-on-error-container/80">
-              上方显示的是已保存或默认城市天气
+              当前天气可能不是你所在位置的天气，请确认地点后再试
             </p>
             <button
               type="button"

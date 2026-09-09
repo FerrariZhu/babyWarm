@@ -357,6 +357,9 @@ export async function fetchWeatherByCoords(
   url.searchParams.set("latitude", String(latitude));
   url.searchParams.set("longitude", String(longitude));
   url.searchParams.set("current", CURRENT_VARS);
+  // The UI converts this value to km/h and warmth thresholds use m/s.
+  // Open-Meteo otherwise defaults to km/h.
+  url.searchParams.set("wind_speed_unit", "ms");
   url.searchParams.set("timezone", "auto");
   if (atHourKey) {
     url.searchParams.set("hourly", CURRENT_VARS);

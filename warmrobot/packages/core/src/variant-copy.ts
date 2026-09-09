@@ -1,6 +1,6 @@
 /**
  * Template-based pros/cons/usage copy for garment_variants rows.
- * Composes from category (类型), material, fit, thickness — ~20 chars each.
+ * Benefits fit a mobile checklist line (at most 9 characters).
  */
 import type {
   BodysuitStyle,
@@ -57,14 +57,37 @@ export type VariantCopyRow = {
   sort_order: number;
 };
 
-const MAT_PRO: Record<Material, string> = {
-  cotton: "棉质亲肤",
-  modal: "莫代尔凉感",
-  polyester: "涤纶速干",
-  acrylic: "腈纶不易皱",
-  wool: "羊毛天然暖",
-  fleece: "抓绒轻暖",
-  down: "羽绒极轻暖",
+// The category leads the sentence. Fabric copy uses the part of the body or
+// care benefit relevant to that garment, rather than repeating material names.
+const MATERIAL_BENEFIT: Record<Material, [string, string, string]> = {
+  cotton: ["轻薄吸汗", "柔软吸汗", "厚实柔软"],
+  modal: ["轻薄柔滑", "贴身柔滑", "厚实柔滑"],
+  polyester: ["轻薄易干", "洗后易干", "厚实易干"],
+  acrylic: ["轻薄蓬松", "蓬松轻软", "厚实蓬松"],
+  wool: ["轻薄暖和", "暖和蓬松", "厚实暖和"],
+  fleece: ["轻薄软和", "轻软暖和", "厚绒暖和"],
+  down: ["轻巧不沉", "蓬松轻盈", "加厚御寒"],
+};
+
+const CATEGORY_FABRIC_BENEFIT: Partial<Record<ClothingCategory, Partial<Record<Material, [string, string, string]>>>> = {
+  bodysuit_short: { cotton: ["薄棉轻软", "贴肚柔软", "厚棉护肚"] },
+  bodysuit_long: { cotton: ["薄棉亲肤", "贴身软和", "厚款暖身"] },
+  tshirt_short: { cotton: ["薄款吸汗", "棉布吸汗", "厚款软和"] },
+  tshirt_long: { cotton: ["薄款亲肤", "贴肤柔软", "厚款暖和"] },
+  thermal_top: { cotton: ["薄而柔软", "贴身吸汗", "贴身加暖"] },
+  sweater: { cotton: ["薄织柔软", "棉织软和", "厚织暖和"] },
+  fleece_top: { cotton: ["薄款好叠", "贴肤软和", "厚款挡凉"], fleece: ["薄绒轻巧", "绒面软和", "厚绒添暖"] },
+  vest: { cotton: ["薄棉贴身", "棉面柔软", "胸背加暖"], fleece: ["薄绒不沉", "胸背暖和", "厚绒护背"], wool: ["薄织护背", "胸背添暖", "厚织护背"] },
+  outer_uv: { cotton: ["棉面柔软", "棉面柔软", "棉面柔软"], polyester: ["洗后好干", "洗后好干", "洗后好干"] },
+  outer_shell: { cotton: ["薄款好收", "棉面软和", "厚款添暖"], fleece: ["薄绒挡凉", "绒面添暖", "厚绒挡冷"] },
+  outer_cotton: { cotton: ["薄款轻便", "棉面柔软", "厚款暖和"] },
+  long_johns: { cotton: ["薄棉贴腿", "贴腿柔软", "腿上添暖"] },
+  pants_short: { cotton: ["贴腿吸汗", "贴腿吸汗", "贴腿吸汗"], polyester: ["沾水易干", "沾水易干", "沾水易干"] },
+  pants_mid: { cotton: ["薄棉轻软", "棉布柔软", "厚款护腿"] },
+  pants_long: { cotton: ["薄款轻软", "棉布软和", "厚款暖腿"], fleece: ["薄绒贴腿", "绒面暖腿", "厚绒挡凉"] },
+  scarf: { cotton: ["轻薄贴颈", "贴颈柔软", "厚款暖颈"], fleece: ["轻绒围颈", "绒面暖颈", "厚绒挡冷"], wool: ["薄织暖颈", "羊毛暖颈", "厚织挡冷"] },
+  gloves: { cotton: ["薄棉吸汗", "手心吸汗", "厚棉暖手"], fleece: ["薄绒轻软", "绒面暖手", "厚绒护手"], wool: ["薄织暖手", "羊毛暖手", "厚织护手"] },
+  socks: { cotton: ["薄袜吸汗", "柔软吸汗", "厚棉暖脚"] },
 };
 
 const MAT_CON: Record<Material, string> = {
@@ -77,26 +100,9 @@ const MAT_CON: Record<Material, string> = {
   down: "遇潮保暖降",
 };
 
-const FIT_PRO: Partial<Record<FitType, string>> = {
-  slim: "贴身锁温",
-  loose: "宽松好活动",
-};
-
 const FIT_CON: Partial<Record<FitType, string>> = {
   slim: "穿脱略慢",
   loose: "视觉略宽大",
-};
-
-const THICK_PRO: Partial<Record<GarmentThickness, string>> = {
-  thin: "轻薄透气",
-  medium: "厚薄适中",
-  thick: "保暖挡风",
-  lightweight: "轻量便携",
-  regular_fill: "常规保暖",
-  extreme_cold: "极寒高暖",
-  standard: "均衡实用",
-  breathable: "透气不闷",
-  fleece_lined: "加绒保暖",
 };
 
 const THICK_CON: Partial<Record<GarmentThickness, string>> = {
@@ -111,33 +117,24 @@ const THICK_CON: Partial<Record<GarmentThickness, string>> = {
   fleece_lined: "室内易过热",
 };
 
-/** Category-specific pro when material axis is absent or as secondary cue. */
-const TYPE_PRO: Partial<Record<ClothingCategory, string>> = {
-  bodysuit_short: "包屁好打底",
-  bodysuit_long: "长袖少空隙",
-  tshirt_short: "短袖好活动",
-  tshirt_long: "长袖护手臂",
-  thermal_top: "打底不显肿",
-  sweater: "中层好蓄热",
-  fleece_top: "户外单穿暖",
-  vest: "护胸不缚臂",
-  vest_down: "护芯更灵活",
-  outer_uv: "轻量防晒",
-  outer_shell: "防风挡小雨",
-  outer_cotton: "日常抗风",
-  outer_down: "严寒高保暖",
-  long_johns: "减少灌风",
-  pants_short: "热天无束缚",
-  pants_mid: "过渡季实用",
-  pants_long: "护腿挡风",
-  hat: "护头防风",
-  scarf: "护颈挡风",
-  gloves: "护手防冻",
-  socks: "护脚保暖",
-  shoes_sandal: "透气快干",
-  shoes_sneaker: "包脚防滑",
-  shoes_leather: "挺括耐脏",
-  shoes_boot: "高帮护踝",
+/** Regular / loose / slim cuts: explain the benefit in the category's context. */
+const CUT_BENEFIT: Partial<Record<ClothingCategory, [string, string, string]>> = {
+  tshirt_short: ["方便单穿", "抬手自在", "方便打底"],
+  tshirt_long: ["遮住手臂", "抬手自在", "方便打底"],
+  thermal_top: ["方便叠穿", "活动自在", "打底平整"],
+  sweater: ["内外好搭", "里面宽松", "内搭平整"],
+  fleece_top: ["套上添暖", "伸手自在", "贴身少褶"],
+  vest: ["胳膊好动", "抬手不绷", "贴身护背"],
+  vest_down: ["抬臂轻松", "叠衣不紧", "贴身护胸"],
+  outer_uv: ["遮挡日晒", "内搭好穿", "方便叠穿"],
+  outer_shell: ["出门挡风", "加衣好套", "外搭挡风"],
+  outer_cotton: ["外穿挡凉", "里面能加", "外搭添暖"],
+  outer_down: ["冬天保暖", "多穿好套", "外搭御寒"],
+  long_johns: ["腿上加暖", "活动自在", "打底平整"],
+  pants_short: ["腿上凉快", "迈腿自在", "方便打底"],
+  pants_mid: ["小腿凉快", "迈腿自在", "方便打底"],
+  scarf: ["领口挡风", "领口挡风", "领口挡风"],
+  gloves: ["挡住冷风", "挡住冷风", "挡住冷风"],
 };
 
 type WarmthBand = "hot" | "mild" | "cold";
@@ -251,9 +248,9 @@ const USAGE: Partial<Record<ClothingCategory, Record<WarmthBand, string>>> = {
 };
 
 const HAT_COPY: Record<HatKind, VariantCopy> = {
-  sun: { pros: "遮阳透气，轻便好戴", cons: "大风易掀，不保暖", usageTips: "晴日户外，紫外线强" },
-  everyday: { pros: "日常百搭，四季可用", cons: "极寒暴晒需换款", usageTips: "日常短行，好搭配" },
-  warm: { pros: "护头防风，保暖蓄热", cons: "室内易闷，热天别戴", usageTips: "冷天户外，大风天" },
+  sun: { pros: "帽檐遮阳，脸上少晒", cons: "大风易掀，不保暖", usageTips: "晴日户外，紫外线强" },
+  everyday: { pros: "日常好搭，方便出门", cons: "极寒暴晒需换款", usageTips: "日常短行，好搭配" },
+  warm: { pros: "包住头部，冷天添暖", cons: "室内易闷，热天别戴", usageTips: "冷天户外，大风天" },
 };
 
 function warmthBand(thickness: GarmentThickness | null, hatKind?: HatKind | null): WarmthBand {
@@ -307,32 +304,33 @@ function pantHint(length: PantLength | null): string | null {
   return null;
 }
 
-function fillHint(fill: FillType | null): string | null {
-  if (fill === "cotton_wadding") return "棉絮厚实";
-  if (fill === "polyester_fill") return "填充均匀";
-  return null;
-}
-
 function composePros(params: VariantCopyParams): string {
-  const { category, material, thickness, fitType, fillType } = params;
-  const parts: string[] = [];
-
-  if (material) parts.push(MAT_PRO[material]);
-  else if (TYPE_PRO[category]) parts.push(TYPE_PRO[category]!);
-
-  if (thickness && THICK_PRO[thickness]) parts.push(THICK_PRO[thickness]!);
-  else if (!material && fillType) {
-    const fh = fillHint(fillType);
-    if (fh) parts.push(fh);
+  const { category, material, thickness, fitType, bodysuitStyle, pantLength, sockHeight } = params;
+  const weight = warmthBand(thickness);
+  const fabric = material
+    ? (CATEGORY_FABRIC_BENEFIT[category]?.[material] ?? MATERIAL_BENEFIT[material])[weight === "hot" ? 0 : weight === "cold" ? 2 : 1]
+    : "穿着轻便";
+  let benefit: string;
+  if (category === "bodysuit_short" || category === "bodysuit_long") {
+    benefit = bodysuitStyle === "long_leg" ? "包住肚腿" : "尿布好换";
+  } else if (category === "pants_long") {
+    benefit = pantLength === "nine_tenth"
+      ? (fitType === "loose" ? "宽松露踝" : "裤脚利落")
+      : (fitType === "loose" ? "宽松盖踝" : "盖住脚踝");
+  } else if (category === "socks") {
+    const sockBenefits: Record<SockHeight, string> = {
+      no_show: "配浅口鞋",
+      ankle: "脚踝凉快",
+      mid_calf: "垫住鞋口",
+      over_calf: "小腿加暖",
+    };
+    benefit = sockBenefits[sockHeight ?? "mid_calf"];
+  } else {
+    const cut = fitType === "loose" ? 1 : fitType === "slim" ? 2 : 0;
+    benefit = CUT_BENEFIT[category]?.[cut] ?? "方便日常";
   }
-
-  if (fitType && fitType !== "regular" && FIT_PRO[fitType]) {
-    parts.push(FIT_PRO[fitType]!);
-  }
-
-  if (parts.length === 0 && TYPE_PRO[category]) parts.push(TYPE_PRO[category]!);
-
-  return joinCopyParts(parts);
+  // Do not truncate: both benefits must survive in the displayed sentence.
+  return `${benefit}，${fabric}`;
 }
 
 function composeCons(params: VariantCopyParams): string {
@@ -375,7 +373,7 @@ function shoeCopy(params: VariantCopyParams): VariantCopy {
   const { category, thickness } = params;
   if (category === "shoes_sandal") {
     return {
-      pros: "透气快干，穿脱方便",
+      pros: "脚面透气，热天凉快",
       cons: "护趾弱，防滑一般",
       usageTips: "盛夏短行，室内外",
     };
@@ -383,13 +381,13 @@ function shoeCopy(params: VariantCopyParams): VariantCopy {
   if (category === "shoes_sneaker") {
     if (thickness === "breathable") {
       return {
-        pros: "网面透气，夏季不闷",
+        pros: "鞋面透气，热气易散",
         cons: "保暖弱，冷天换袜",
         usageTips: "热天学步，户外玩",
       };
     }
     return {
-      pros: "包脚护趾，防滑稳当",
+      pros: "包住脚趾，减少磕碰",
       cons: "闷脚时换透气款",
       usageTips: "日常学步，主力鞋",
     };
@@ -397,13 +395,13 @@ function shoeCopy(params: VariantCopyParams): VariantCopy {
   if (category === "shoes_leather") {
     if (thickness === "fleece_lined") {
       return {
-        pros: "绒里保暖，冬季护脚",
+        pros: "绒里保暖，脚上添暖",
         cons: "偏重，室内易热",
         usageTips: "冷天外出，稍正式",
       };
     }
     return {
-      pros: "皮质挺括，耐脏好擦",
+      pros: "鞋面挺括，穿着有型",
       cons: "新鞋偏硬，需磨合",
       usageTips: "春秋过渡，稍正式",
     };
@@ -411,13 +409,13 @@ function shoeCopy(params: VariantCopyParams): VariantCopy {
   if (category === "shoes_boot") {
     if (thickness === "fleece_lined") {
       return {
-        pros: "高帮加绒，雨雪防滑",
+        pros: "绒里保暖，脚踝也暖",
         cons: "偏重，穿脱略慢",
         usageTips: "寒冬雨雪，室外穿",
       };
     }
     return {
-      pros: "高帮护踝，雨雪防滑",
+      pros: "鞋帮较高，盖住脚踝",
       cons: "偏重，室内易热",
       usageTips: "雨雪冷天，户外穿",
     };
@@ -435,7 +433,7 @@ export function buildVariantCopy(params: VariantCopyParams): VariantCopy {
 
   if (category === "other") {
     return {
-      pros: "灵活兜底，对照清单",
+      pros: "按需添衣，方便调整",
       cons: "无固定属性，需自判",
       usageTips: "按清单对照选用",
     };

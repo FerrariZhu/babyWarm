@@ -18,7 +18,7 @@ export default async function HomePage({
   const data = await getHomeDailyBriefPageData({ force, at: hourOverride });
   if (!data) redirect("/login");
 
-  const { baby, brief, observedAtDisplay, variantCopyByCategory, categoryIcons, savedToday } = data;
+  const { baby, brief, observedAtDisplay, categoryGuideByCategory, categoryIcons, savedToday } = data;
 
   return (
     <AppShell
@@ -27,7 +27,11 @@ export default async function HomePage({
       babyGender={baby?.gender}
       headerVariant="none"
     >
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-section-spacing px-container-margin pb-5">
+      <main className="home-page mx-auto flex w-full max-w-5xl flex-1 flex-col gap-section-spacing px-container-margin pb-5">
+        <header className="home-brand">
+          <h1>暖宝宝</h1>
+          {baby?.name ? <p>{baby.name}</p> : null}
+        </header>
         {brief && (
           <>
             <LiveWeatherSection
@@ -50,7 +54,7 @@ export default async function HomePage({
               advice={brief.advice}
               weather={brief.weather}
               showChecklist={Boolean(baby)}
-              variantCopyByCategory={variantCopyByCategory}
+              categoryGuideByCategory={categoryGuideByCategory}
               categoryIcons={categoryIcons}
               saveContext={
                 baby

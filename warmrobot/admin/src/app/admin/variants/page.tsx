@@ -1,4 +1,5 @@
 import { listAdminVariants } from "./actions";
+import { listAdminCategoryGuides } from "./category-guide-actions";
 import { listAdminCategories } from "@/app/admin/categories/actions";
 import { CategoryVariantAdmin } from "@/components/category-variant-admin";
 
@@ -9,9 +10,10 @@ type Props = {
 export default async function VariantsPage({ searchParams }: Props) {
   const { category: categoryCode } = await searchParams;
 
-  const [variantsResult, categoriesResult] = await Promise.all([
+  const [variantsResult, categoriesResult, guidesResult] = await Promise.all([
     listAdminVariants(),
     listAdminCategories(),
+    listAdminCategoryGuides(),
   ]);
 
   if (!variantsResult.ok) {
@@ -48,6 +50,7 @@ export default async function VariantsPage({ searchParams }: Props) {
       <CategoryVariantAdmin
         categories={categoriesResult.data}
         variants={variantsResult.data}
+        categoryGuides={guidesResult.ok ? guidesResult.data : []}
         selectedCategoryCode={categoryCode}
       />
     </div>

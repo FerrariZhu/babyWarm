@@ -20,8 +20,6 @@
 ## 测试脚本
 
 ```bash
-npm run test:wardrobe-vision -- path/to/photo.jpg
-npm run test:garment-image -- path/to/photo.jpg
 npm run import:catalog
 ```
 

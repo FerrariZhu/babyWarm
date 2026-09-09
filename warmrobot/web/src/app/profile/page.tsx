@@ -23,13 +23,13 @@ export default async function ProfilePage() {
     >
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section-spacing overflow-y-auto px-container-margin pt-2 pb-5">
         {baby ? (
-          <section className="flex items-center gap-stack-gap">
+          <section className="flex items-center gap-4 rounded-2xl bg-primary-fixed/60 p-5">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-surface-variant bg-surface-container shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={resolveBabyAvatarUrl(baby.avatar_url, baby.gender)}
+                width="64" height="64" src={resolveBabyAvatarUrl(baby.avatar_url, baby.gender)}
                 alt={baby.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover p-1"
               />
             </div>
             <div className="flex min-w-0 flex-col">
@@ -57,7 +57,7 @@ export default async function ProfilePage() {
         {baby && (
           <section>
             <h3 className="font-headline-md mb-stack-gap text-on-background">宝宝档案</h3>
-            <div className="flex flex-col gap-4 rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-card-padding shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+            <div className="profile-details flex flex-col rounded-2xl bg-surface-container-lowest p-5 cloud-shadow">
               <Field label="姓名">
                 <p className="font-body-md rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface">
                   {baby.name}

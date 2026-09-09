@@ -118,24 +118,16 @@ export function EditBabyForm({
           type="button"
           onClick={() => fileRef.current?.click()}
           className="group relative cursor-pointer"
+          aria-label="更换宝宝头像"
         >
           <div className="flex h-36 w-36 items-center justify-center rounded-[2.5rem] bg-surface-container-lowest p-2 shadow-[0_8px_32px_rgba(62,102,88,0.08)] transition-transform duration-300 group-hover:scale-105 group-active:scale-95 md:h-40 md:w-40">
             <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-surface-container-high shadow-[inset_0_4px_12px_rgba(0,0,0,0.1)]">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt={name}
-                  className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-70"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={resolveBabyAvatarUrl(null, gender)}
-                  alt={name}
-                  className="h-full w-full object-cover"
-                />
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveBabyAvatarUrl(avatarUrl, gender)}
+                alt={name}
+                className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-70"
+              />
               <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <MaterialIcon name="photo_camera" filled className="text-[36px] text-white drop-shadow-md" />
               </div>
@@ -148,7 +140,7 @@ export function EditBabyForm({
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+      <form onSubmit={handleSubmit} className="baby-profile-form space-y-6 md:space-y-8">
         <div className="space-y-4">
           <div className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-4 shadow-[0_2px_12px_rgba(62,102,88,0.03)] transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
             <label className="font-label-caps mb-1.5 block uppercase tracking-wider text-outline" htmlFor="baby_name">

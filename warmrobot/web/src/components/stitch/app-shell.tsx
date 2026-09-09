@@ -20,7 +20,7 @@ export function AppShell({
 }) {
   return (
     <div
-      className={`flex min-h-screen flex-col items-center bg-background pb-[88px] text-on-background ${
+      className={`app-shell flex min-h-screen flex-col items-center bg-background text-on-background ${
         headerVariant === "none" ? "pt-safe" : ""
       }`}
     >

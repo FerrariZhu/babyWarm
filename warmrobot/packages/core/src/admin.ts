@@ -17,3 +17,9 @@ export {
   summarizeCategoryAxisChips,
   thicknessOptionLabelZh,
 } from "./variant-axis-labels";
+
+export { garmentIcon } from "./garment-icons";
+export { categoryIconKey } from "./category-icons";
+export { CATEGORY_DISPLAY_LABELS } from "./daily-brief-types";
+export type { CategoryGuideContent, CategoryGuideEntry } from "./category-guides";
+export { mapCategoryGuideRow } from "./category-guides";

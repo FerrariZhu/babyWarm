@@ -11,8 +11,6 @@
     "clean": "rm -rf .next",
     "import:catalog": "node scripts/legacy/import-taobao-catalog.mjs",
     "import:catalog:embeddings": "node scripts/legacy/generate-catalog-embeddings.mjs",
-    "test:wardrobe-vision": "node scripts/legacy/test-wardrobe-vision.mjs",
-    "test:garment-image": "npx tsx scripts/legacy/test-garment-image.mjs",
     "db:clear": "node scripts/clear-dirty-data.mjs",
     "db:migrate": "node scripts/apply-migration.mjs",
     "db:migrate:enum": "node scripts/apply-migration-enum-spec.mjs",

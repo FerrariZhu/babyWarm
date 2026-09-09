@@ -9,6 +9,7 @@ import {
   type SaveAppUserInput,
   type SaveManualUserInput,
   type UpdateManualUserInput,
+  type UserLoginChannel,
   type UserSignupChannel,
 } from "@/lib/admin/user-types";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -36,6 +37,8 @@ type ProfileRow = {
   wechat_openid: string | null;
   wechat_unionid: string | null;
   admin_notes: string | null;
+  last_login_channel: UserLoginChannel | null;
+  last_login_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -150,6 +153,8 @@ function mapAppUser(
     wechat_openid: profile.wechat_openid,
     wechat_unionid: profile.wechat_unionid,
     admin_notes: profile.admin_notes,
+    last_login_channel: profile.last_login_channel,
+    last_login_at: profile.last_login_at,
     created_at: profile.created_at,
     updated_at: profile.updated_at,
     babies,
@@ -171,6 +176,8 @@ function mapManualUser(row: ManualRow): AdminUserRecord {
     wechat_openid: null,
     wechat_unionid: null,
     admin_notes: row.admin_notes,
+    last_login_channel: null,
+    last_login_at: null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     babies: baby ? [baby] : [],
@@ -228,7 +235,7 @@ export async function listAdminUsers(): Promise<ActionResult<AdminUserRecord[]>>
     const { data: profiles, error: profileError } = await supabase
       .from("profiles")
       .select(
-        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, created_at, updated_at"
+        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, last_login_channel, last_login_at, created_at, updated_at"
       )
       .order("created_at", { ascending: false });
 
@@ -299,6 +306,8 @@ export async function listAdminUsers(): Promise<ActionResult<AdminUserRecord[]>>
             wechat_openid: null,
             wechat_unionid: null,
             admin_notes: null,
+            last_login_channel: null,
+            last_login_at: null,
             created_at: "",
             updated_at: "",
           },
@@ -347,7 +356,7 @@ export async function saveAppUserProfile(
       .update(patch)
       .eq("id", input.id)
       .select(
-        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, created_at, updated_at"
+        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, last_login_channel, last_login_at, created_at, updated_at"
       )
       .single();
 

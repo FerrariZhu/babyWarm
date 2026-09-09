@@ -14,6 +14,13 @@ export type {
 
 export type { AdviceConclusionBlock } from "./advice-copy";
 export type { CategoryStyleGuide } from "./category-style-guides";
+export type {
+  CategoryGuideContent,
+  CategoryGuideEntry,
+  CategoryGuideView,
+  CategoryGuideViewEntry,
+} from "./category-guides";
+export { buildCategoryGuideView } from "./category-guides";
 export type { VariantCopyCard } from "./daily-brief-types";
 export type { AdviceTipTag, AdviceTipTagTone } from "./advice-tip-tags";
 export type { DressingRecord } from "./dressing-records";
@@ -34,7 +41,6 @@ export {
   shouldShowDiaperPrompt,
 } from "./diaper-status";
 export { resolveAdviceTipTags } from "./advice-tip-tags";
-export { effectiveChecklistWarmth } from "./checklist-warmth";
 export {
   applySlotSwap,
   formatMaterialFitLine,
@@ -56,3 +62,10 @@ export {
   resolveCategoryIcon,
   type CategoryIconMeta,
 } from "./category-icons";
+
+export { garmentIcon } from "./garment-icons";
+export { categoryIconKey } from "./category-icons";
+
+export { checklistCategoryChoices, checklistAxisChoices, checklistAxisValue, applyChecklistSelection } from "./checklist-selection";
+
+export { completeChecklistSelection, topNeedsBottom, type CompleteSelectionInput } from "./checklist-completeness";

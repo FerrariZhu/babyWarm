@@ -98,7 +98,12 @@ export function resolveBabyAvatarUrl(
   avatarUrl?: string | null,
   gender?: BabyGender | string | null
 ): string {
-  if (avatarUrl?.trim()) return avatarUrl.trim();
+  const url = avatarUrl?.trim();
+  const isDefaultAvatar = url === DEFAULT_BABY_AVATARS.male
+    || url === DEFAULT_BABY_AVATARS.female
+    || url === "/illustrations/fluent/bear_flat.svg"
+    || url === "/illustrations/fluent/rabbit_flat.svg";
+  if (url && !isDefaultAvatar) return url;
   if (gender === "female") return DEFAULT_BABY_AVATARS.female;
   return DEFAULT_BABY_AVATARS.male;
 }

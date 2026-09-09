@@ -1,3 +1,5 @@
+import { CATEGORY_DISPLAY_LABELS } from "@warmrobot/core/admin";
+
 export const OUTFIT_SLOTS = [
   { value: "base_top", label: "内上" },
   { value: "mid_top", label: "中上" },
@@ -14,8 +16,9 @@ export const OUTFIT_SLOTS = [
 
 export type OutfitSlot = (typeof OUTFIT_SLOTS)[number]["value"];
 
-/** Google Material Symbols Outlined 图标名，见 admin MaterialIcon + globals.css */
+/** Shared clothing silhouettes plus supported optional Material Symbols. */
 export const PRESET_ICONS = [
+  ...Object.entries(CATEGORY_DISPLAY_LABELS).map(([code, label]) => ({ value: `garment_${code}`, label })),
   { value: "checkroom", label: "衣帽间" },
   { value: "apparel", label: "服装" },
   { value: "layers", label: "多层叠穿" },
@@ -23,13 +26,12 @@ export const PRESET_ICONS = [
   { value: "sunny", label: "防晒/晴天" },
   { value: "ac_unit", label: "保暖/羽绒" },
   { value: "steps", label: "运动鞋" },
-  { value: "beach_access", label: "凉鞋/沙滩" },
-  { value: "hiking", label: "靴子/户外" },
+  { value: "beach_access", label: "沙滩伞" },
+  { value: "hiking", label: "徒步" },
   { value: "back_hand", label: "手套" },
   { value: "category", label: "通用/其他" },
   { value: "dry_cleaning", label: "衣物护理" },
-  { value: "socks", label: "袜子" },
-  { value: "sweater", label: "毛衣" },
+  { value: "footprint", label: "脚印" },
 ] as const;
 
 export type PresetIconKey = (typeof PRESET_ICONS)[number]["value"];

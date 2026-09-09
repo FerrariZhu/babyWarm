@@ -1,0 +1,5 @@
+page { background: #fff7ef; color: #3a2a22; font-size: 32rpx; }
+.page { padding: 72rpx 48rpx; }
+.primary { background: #d96845; color: white; border-radius: 999rpx; margin-top: 28rpx; }
+.hint { color: #806d62; font-size: 26rpx; line-height: 1.7; }
+.error { color: #b3261e; margin-top: 24rpx; }

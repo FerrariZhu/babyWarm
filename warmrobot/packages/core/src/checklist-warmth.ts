@@ -1,3 +1,4 @@
+/** Current checklist uses applyOutfitIndex for one total across both sections. Zone utilities below are retained for legacy consumers. */
 /**
  * Checklist warmth: slot allocation + zone sum 穿衣指数.
  *
@@ -221,4 +222,32 @@ export function effectiveChecklistWarmth(items: AdviceItem[]): number | null {
 /** @deprecated Alias of {@link effectiveChecklistWarmth}. */
 export function sumChecklistWarmth(items: AdviceItem[]): number | null {
   return effectiveChecklistWarmth(items);
+}
+
+/** Allocate the weather target across all visible garment cards, never per section.
+ * Raw variant value × coverage weight determines the share. Largest remainders
+ * ensure integer badges sum exactly to R. Raw values survive repeated edits.
+ */
+export function applyOutfitIndex(indoor: AdviceItem[], outdoor: AdviceItem[], requiredWarmth: number): void {
+  const garments = [...indoor, ...outdoor].filter(item => item.kind === "category" || (item.kind === "tip" && item.id === "diaper"));
+  if (!garments.length) return;
+  const target = Number.isFinite(requiredWarmth) ? clampWarmth(requiredWarmth) : 0;
+  const rows = garments.map((item, index) => {
+    const raw = item.kind === "tip" && item.id === "diaper"
+      ? DIAPER_WARMTH_VALUE : item.baseWarmthValue ?? item.warmthValue;
+    item.baseWarmthValue = raw != null && Number.isFinite(raw) ? Math.max(0, raw) : 1;
+    const weight = (SLOT_WARMTH_WEIGHTS[resolveOutfitSlot(item) ?? "other"] ?? DEFAULT_SLOT_WEIGHT)
+      * Math.max(1, item.baseWarmthValue);
+    return { item, index, weight, value: 0, remainder: 0 };
+  });
+  const total = rows.reduce((sum, row) => sum + row.weight, 0);
+  for (const row of rows) {
+    const exact = target * row.weight / total;
+    row.value = Math.floor(exact);
+    row.remainder = exact - row.value;
+  }
+  const remaining = target - rows.reduce((sum, row) => sum + row.value, 0);
+  rows.sort((a,b) => b.remainder-a.remainder || a.index-b.index);
+  for (let i=0; i<remaining; i++) rows[i].value++;
+  for (const row of rows) row.item.warmthValue = row.value;
 }

@@ -8,7 +8,7 @@ export function formatAuthLoginError(error: unknown): string {
 
   const message = error.message.trim();
   if (NETWORK_ERROR.test(message)) {
-    return "无法连接登录服务。请确认本机已执行 supabase start。";
+    return "网络连接不太顺畅，请检查网络后重试。";
   }
 
   const lower = message.toLowerCase();
@@ -19,5 +19,5 @@ export function formatAuthLoginError(error: unknown): string {
     return "邮箱尚未验证";
   }
 
-  return message || "登录失败，请重试";
+  return "登录暂时不可用，请稍后重试。";
 }

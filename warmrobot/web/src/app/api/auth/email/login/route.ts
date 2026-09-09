@@ -3,7 +3,9 @@ import type { CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { formatAuthLoginError } from "@/lib/auth/login-error";
+import { recordLoginActivity } from "@/lib/auth/login-activity";
 import { getSupabaseEnv } from "@/lib/env";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +48,12 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: formatAuthLoginError(error) }, { status: 401 });
     }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      throw userError ?? new Error("未获取到已登录用户");
+    }
+    await recordLoginActivity(createServiceClient(), userData.user.id, "email_password");
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -1,0 +1,1 @@
+<view class="page"><text style="font-size:56rpx;font-weight:700">暖宝宝</text><view class="hint" style="margin-top:24rpx">授权手机号后，同一手机号在微信小程序与其他平台的数据会自动共享。</view><button class="primary" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" loading="{{loading}}">微信手机号登录</button><view wx:if="{{error}}" class="error">{{error}}</view></view>

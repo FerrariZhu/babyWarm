@@ -21,7 +21,7 @@ export function AppHeader({
   const avatar = (
     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-surface-container-high">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={avatarSrc} alt="" className="h-full w-full object-cover" />
+      <img width="40" height="40" src={avatarSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
 
@@ -29,7 +29,7 @@ export function AppHeader({
     <button
       type="button"
       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-      aria-label="Notifications"
+      aria-label="消息提醒"
     >
       <MaterialIcon name="notifications" />
     </button>

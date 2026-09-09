@@ -14,6 +14,7 @@ import {
   GENDER_OPTIONS,
   genderLabel,
   isAppSignupSource,
+  loginChannelLabel,
   sourceLabel,
   type AdminUserRecord,
   WARMTH_PREFERENCE_OPTIONS,
@@ -177,7 +178,7 @@ export function UserInfoTable({ initialUsers }: Props) {
         <table className="min-w-full text-left">
           <thead>
             <tr className="border-b border-outline-variant/40 bg-surface-container-low">
-              <th className="font-label-sm px-4 py-3 text-text-soft">来源</th>
+              <th className="font-label-sm px-4 py-3 text-text-soft">登录渠道</th>
               <th className="font-label-sm px-4 py-3 text-text-soft">用户</th>
               <th className="font-label-sm px-4 py-3 text-text-soft">微信</th>
               <th className="font-label-sm px-4 py-3 text-text-soft">城市</th>
@@ -202,7 +203,9 @@ export function UserInfoTable({ initialUsers }: Props) {
                             : "bg-tertiary-fixed/60 text-on-tertiary-fixed"
                         }`}
                       >
-                        {sourceLabel(user.source)}
+                        {isAppSignupSource(user.source)
+                          ? loginChannelLabel(user.last_login_channel)
+                          : sourceLabel(user.source)}
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top">
@@ -362,6 +365,9 @@ function AppUserEditor({
           </p>
           <p className="font-label-sm text-text-soft">
             登录邮箱：<span className="font-mono">{user.email || "—"}</span>
+          </p>
+          <p className="font-label-sm text-text-soft">
+            最近登录：{loginChannelLabel(user.last_login_channel)} · {formatDateTime(user.last_login_at)}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

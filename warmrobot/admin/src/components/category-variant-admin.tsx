@@ -5,6 +5,7 @@ import {
   getCategoryAxisOptions,
   summarizeCategoryAxisChips,
   type ClothingCategory,
+  type CategoryGuideContent,
 } from "@warmrobot/core/admin";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -12,6 +13,7 @@ import { createCategory, updateCategory } from "@/app/admin/categories/actions";
 import { createVariant } from "@/app/admin/variants/actions";
 import { MaterialIcon } from "@/components/material-icon";
 import { VariantAdminTable } from "@/components/variant-admin-table";
+import { CategoryGuideAdminPanel } from "@/components/category-guide-admin-panel";
 import {
   OUTFIT_SLOTS,
   outfitSlotLabel,
@@ -23,6 +25,7 @@ import type { AdminVariant } from "@/lib/admin/variant-types";
 type Props = {
   categories: AdminCategory[];
   variants: AdminVariant[];
+  categoryGuides: CategoryGuideContent[];
   selectedCategoryCode?: string;
 };
 
@@ -57,6 +60,7 @@ function defaultVariantForm(category: AdminCategory) {
 export function CategoryVariantAdmin({
   categories: initialCategories,
   variants: initialVariants,
+  categoryGuides,
   selectedCategoryCode,
 }: Props) {
   const router = useRouter();
@@ -98,6 +102,9 @@ export function CategoryVariantAdmin({
   );
 
   const createAxisSpec = selected ? getCategoryAxisOptions(selected.code) : null;
+  const selectedGuide = selected
+    ? categoryGuides.find((guide) => guide.categoryCode === selected.code)
+    : undefined;
 
   function goCategory(code?: string) {
     router.push(code ? `/admin/variants?category=${code}` : "/admin/variants");
@@ -583,6 +590,14 @@ export function CategoryVariantAdmin({
           )}
         </div>
       )}
+
+      {selected ? (
+        <CategoryGuideAdminPanel
+          categoryCode={selected.code}
+          categoryName={selected.name_zh}
+          initialGuide={selectedGuide}
+        />
+      ) : null}
 
       <VariantAdminTable
         initialVariants={variants}

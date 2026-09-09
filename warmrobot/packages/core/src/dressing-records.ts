@@ -103,7 +103,8 @@ export function formatRecordedDateLabel(
 }
 
 function cloneItem(item: AdviceItem): AdviceItem {
-  return { ...item };
+  const { autoAddedBottom: _auto, userModified: _modified, selectionVariants: _selection, alternatives: _alternatives, alternativeGroups: _groups, ...saved } = item;
+  return saved;
 }
 
 function cloneExtra(extra: AdviceExtra): AdviceExtra {

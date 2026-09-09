@@ -33,7 +33,7 @@ warmrobot/
 
 ## 功能（MVP）
 
-- [x] 邮箱 / 微信 Mock 登录（Supabase Auth）
+- [x] 邮箱 / 微信小程序登录（Supabase Auth）
 - [x] 宝宝档案、当地天气（Open-Meteo）
 - [x] 今日穿搭清单（室内 / 外出 / 睡眠）
 - [x] 细类型说明半弹层、穿衣记录

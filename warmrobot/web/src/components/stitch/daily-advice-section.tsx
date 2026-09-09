@@ -5,7 +5,6 @@ import {
   useMemo,
   useState,
   useCallback,
-  useRef,
   type ReactNode,
 } from "react";
 import type {
@@ -14,13 +13,17 @@ import type {
   BriefAdvice,
   DressingAdvice,
   HomeDailyBriefWeather,
-  VariantCopyCard,
+  CategoryGuideContent,
   WeatherSnapshot,
   CategoryIconMeta,
 } from "@warmrobot/core/client";
 import {
   adviceFingerprint,
-  applySlotSwap,
+  completeChecklistSelection,
+  type CompleteSelectionInput,
+  checklistCategoryChoices,
+  checklistAxisChoices,
+  checklistAxisValue,
   checklistDisplayChips,
   formatAdviceConclusion,
   formatAdviceConclusionBlocks,
@@ -31,11 +34,11 @@ import {
   type DiaperPromptState,
 } from "@warmrobot/core/client";
 import { AddBabyChecklistPrompt } from "./add-baby-checklist-prompt";
-import { AdviceConclusionPanel } from "./advice-conclusion-panel";
+import { AdviceConclusionPanel, AdviceTips } from "./advice-conclusion-panel";
 import { CategoryStyleSheet } from "./category-style-sheet";
 import { MaterialIcon } from "./material-icon";
+import { GarmentChoicePicker } from "./garment-choice-picker";
 import { SaveDressingRecordButton } from "./save-dressing-record-button";
-import { SlotSwapPopover } from "./slot-swap-popover";
 
 /** UI copy — keep in sync with @warmrobot/core ADVICE_COPY where overlapping. */
 const COPY = {
@@ -65,153 +68,54 @@ function cardKey(item: AdviceItem, index: number): string {
   return item.outfitSlot ?? `${item.id}:${index}`;
 }
 
-function swapKey(zone: "indoor" | "outdoor", item: AdviceItem, index: number): string {
-  return `${zone}:${cardKey(item, index)}`;
-}
-
-function BentoCard({
-  item,
-  zone,
-  categoryIcons,
-  onOpen,
-  onSwapSelect,
-  swapOpen,
-  onSwapOpenChange,
-}: {
+function BentoCard({ item, zone, categoryIcons, onOpen, onSelectItem }: {
   item: AdviceItem;
   zone: "indoor" | "outdoor" | "extra";
   categoryIcons?: Record<string, CategoryIconMeta>;
   onOpen?: () => void;
-  onSwapSelect?: (selectedIndex: number) => void;
-  swapOpen: boolean;
-  onSwapOpenChange: (open: boolean) => void;
+  onSelectItem?: (selected: AdviceItem) => void;
 }) {
-  const swapButtonRef = useRef<HTMLButtonElement>(null);
-  const well =
-    zone === "indoor"
-      ? "bg-indoor-surface group-hover/card:bg-tertiary-fixed"
-      : zone === "outdoor"
-        ? "bg-outdoor-surface group-hover/card:bg-primary-fixed"
-        : "bg-clothing-extra/15 group-hover/card:bg-clothing-extra/25";
-  const iconColor =
-    zone === "indoor"
-      ? "text-tertiary"
-      : zone === "outdoor"
-        ? "text-primary"
-        : "text-clothing-extra";
-
-  const canSwap = Boolean(
-    onSwapSelect && item.alternatives && item.alternatives.length > 0
-  );
-  const chips = checklistDisplayChips(item);
-  const showPros = Boolean(item.pros);
-
+  const categories = checklistCategoryChoices(item);
+  const well = zone === "indoor" ? "bg-indoor-surface" : zone === "outdoor" ? "bg-outdoor-surface" : "bg-clothing-extra/15";
+  const iconColor = zone === "indoor" ? "text-tertiary" : zone === "outdoor" ? "text-primary" : "text-clothing-extra";
   return (
-    <div className="group/card relative flex flex-col overflow-visible rounded-xl border border-outline-variant/35 bg-surface-container-lowest p-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_6px_18px_rgba(0,0,0,0.07)]">
-      <div className="mb-0.5 flex min-h-7 items-center justify-between gap-1.5">
-        {item.warmthValue != null ? (
-          <span
-            className="inline-flex items-center gap-0.5 rounded-full border border-outline-variant/30 bg-surface-container/80 px-2 py-0.5 text-on-surface-variant/75 backdrop-blur-[2px]"
-            aria-label={`穿衣指数 ${item.warmthValue}`}
-          >
-            <span className="font-label-sm leading-none opacity-75">指数</span>
-            <span className="font-label-sm tabular-nums leading-none text-on-surface-variant/90">
-              {item.warmthValue}
-            </span>
+    <div className="garment-card group/card relative flex flex-col rounded-xl p-2.5">
+      <div className="mb-0.5 flex min-h-10 items-center justify-between gap-1.5">
+        {(item.kind === "category" || (item.kind === "tip" && item.id === "diaper")) && item.warmthValue != null ? (
+          <span className="rounded-full border border-outline-variant/30 bg-surface-container px-2 py-0.5 font-label-sm tabular-nums text-on-surface-variant">
+            指数 {item.warmthValue}
           </span>
-        ) : (
-          <span aria-hidden="true" className="inline-block h-6 w-[3.25rem]" />
-        )}
-
-        {canSwap ? (
-          <>
-            <button
-              ref={swapButtonRef}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSwapOpenChange(!swapOpen);
-              }}
-              aria-label={`${COPY.swapLabel}，查看${item.label}的其他可选类型`}
-              aria-haspopup="listbox"
-              aria-expanded={swapOpen}
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary/90 transition-colors hover:bg-primary/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                swapOpen ? "bg-primary/10" : ""
-              }`}
-            >
-              <MaterialIcon
-                name="expand_more"
-                className={`text-[22px] transition-transform duration-200 ${swapOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            <SlotSwapPopover
-              open={swapOpen}
-              anchorRef={swapButtonRef}
-              current={item}
-              alternatives={item.alternatives ?? []}
-              alternativeGroups={item.alternativeGroups}
-              onSelect={(selectedIndex) => {
-                onSwapSelect?.(selectedIndex);
-                onSwapOpenChange(false);
-              }}
-              onClose={() => onSwapOpenChange(false)}
-            />
-          </>
-        ) : (
-          <span aria-hidden="true" className="inline-block h-8 w-8" />
-        )}
+        ) : <span />}
+        {onSelectItem && categories.length > 1 ? (
+          <GarmentChoicePicker label="品类" garment={item.label} value={item.category ?? ""}
+            choices={categories} onSelect={onSelectItem} iconOnly />
+        ) : null}
       </div>
-
-      {onOpen ? (
-        <button
-          type="button"
-          className="flex w-full flex-1 cursor-pointer flex-col rounded-lg px-0.5 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          onClick={onOpen}
-          aria-haspopup="dialog"
-          aria-label={`查看${item.label}款式说明`}
-        >
-          <CardBody
-            item={item}
-            categoryIcons={categoryIcons}
-            well={well}
-            iconColor={iconColor}
-            chips={chips}
-            showPros={showPros}
-          />
-        </button>
-      ) : (
-        <div className="flex w-full flex-1 flex-col px-0.5 text-center">
-          <CardBody
-            item={item}
-            categoryIcons={categoryIcons}
-            well={well}
-            iconColor={iconColor}
-            chips={chips}
-            showPros={showPros}
-          />
-        </div>
-      )}
+      <CardBody item={item} categoryIcons={categoryIcons} well={well} iconColor={iconColor}
+        chips={checklistDisplayChips(item)} showPros={Boolean(item.pros)} onOpen={onOpen} onSelectItem={onSelectItem} />
     </div>
   );
 }
 
-function AxisChips({ chips }: { chips: ChecklistDisplayChip[] }) {
+function AxisChips({ chips, item, onSelectItem }: {
+  chips: ChecklistDisplayChip[];
+  item: AdviceItem;
+  onSelectItem?: (selected: AdviceItem) => void;
+}) {
   if (chips.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 font-label-sm leading-snug">
-      {chips.map((chip, index) => (
-        <span key={chip.key} className="contents">
-          {index > 0 ? (
-            <span aria-hidden="true" className="text-on-surface-variant/20">
-              ·
-            </span>
-          ) : null}
-          <span className="inline-flex items-baseline gap-1">
-            <span className="text-on-surface-variant/55">{chip.label}</span>
-            <span className="text-on-surface/85">{chip.value}</span>
-          </span>
-        </span>
-      ))}
+    <div className="garment-attributes">
+      {chips.map((chip) => {
+        const choices = checklistAxisChoices(item, chip.key);
+        return onSelectItem && choices.length > 1 ? (
+          <GarmentChoicePicker key={chip.key} label={chip.label} garment={item.label}
+            value={checklistAxisValue(item, chip.key)} choices={choices} onSelect={onSelectItem} />
+        ) : (
+          <div key={chip.key} className="garment-attribute-static">
+            <span>{chip.label}</span><span>{chip.value}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -223,6 +127,8 @@ function CardBody({
   iconColor,
   chips,
   showPros,
+  onOpen,
+  onSelectItem,
 }: {
   item: AdviceItem;
   categoryIcons?: Record<string, CategoryIconMeta>;
@@ -230,47 +136,46 @@ function CardBody({
   iconColor: string;
   chips: ChecklistDisplayChip[];
   showPros: boolean;
+  onOpen?: () => void;
+  onSelectItem?: (selected: AdviceItem) => void;
 }) {
   const icon = resolveCategoryIcon(item, categoryIcons);
+  const identity = (
+    <span className="flex min-w-0 items-center justify-center gap-4">
+      <span className="flex shrink-0">
+        <span className={`garment-picture flex items-center justify-center transition-colors ${well}`}>
+          {icon.iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={icon.iconUrl} alt="" className="h-6 w-6 object-contain" />
+          ) : (
+            <MaterialIcon name={icon.iconKey} className={`text-[22px] font-light ${iconColor}`} />
+          )}
+        </span>
+      </span>
+      <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
+        <span className={`font-label-md leading-snug text-on-surface ${onOpen ? "min-h-5" : ""}`}>{item.label}</span>
+        {item.labelEn ? (
+          <span className="font-label-sm font-normal leading-snug tracking-[0.02em] text-text-soft">{item.labelEn}</span>
+        ) : null}
+      </span>
+    </span>
+  );
 
   return (
     <div className="flex w-full flex-col">
-      <div className="mb-1.5 flex justify-center">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${well}`}
-        >
-          {icon.iconUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={icon.iconUrl}
-              alt=""
-              className="h-6 w-6 object-contain"
-            />
-          ) : (
-            <MaterialIcon
-              name={icon.iconKey}
-              className={`text-[22px] font-light ${iconColor}`}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="flex w-full flex-col items-center gap-1">
-        <div className="flex min-w-0 flex-col items-center gap-px text-center">
-          <span className="font-label-md leading-snug text-on-surface">{item.label}</span>
-          {item.labelEn ? (
-            <span className="font-label-sm font-normal leading-snug tracking-[0.02em] text-on-surface-variant/42 line-clamp-1">
-              {item.labelEn}
-            </span>
-          ) : null}
-        </div>
-
-        <AxisChips chips={chips} />
+      {onOpen ? (
+        <button type="button" onClick={onOpen} aria-haspopup="dialog" aria-label={`查看${item.label}款式说明`}
+          className="flex w-full min-w-0 flex-col rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+          {identity}
+        </button>
+      ) : <div className="flex w-full min-w-0 flex-col">{identity}</div>}
+      <div className="mt-0.5 flex w-full flex-col items-center">
+        <AxisChips chips={chips} item={item} onSelectItem={onSelectItem} />
       </div>
 
       {showPros && item.pros ? (
-        <div className="mt-1.5 w-full border-t border-outline-variant/20 pt-1.5">
-          <p className="font-label-sm leading-snug text-on-surface/85 line-clamp-2 text-center">
+        <div className="mt-1 w-full border-t border-outline-variant/20 pt-1">
+          <p className="font-label-sm leading-snug text-on-surface-variant text-center">
             {item.pros}
           </p>
         </div>
@@ -311,8 +216,8 @@ function BentoSection({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h4 className="font-label-md text-text-soft">{heading}</h4>
+    <div className="outfit-group flex flex-col gap-2" data-zone={heading === COPY.indoorHeading ? "indoor" : heading === COPY.outdoorHeading ? "outdoor" : "extra"}>
+      <h4 className="font-label-md text-on-surface">{heading}</h4>
       <div className="grid grid-cols-2 gap-stack-gap overflow-visible">{children}</div>
     </div>
   );
@@ -321,14 +226,15 @@ function BentoSection({
 /**
  * Home modules below 天气模块:
  * 1) 穿搭建议 — conclusion paragraph
- * 2) 穿搭清单 — indoor / outdoor / extras
- * Weather tip tags live in WeatherWidget, not here.
+ * 2) 出门小贴士 — contextual UV / rain / accessory reminders
+ * 3) 穿搭清单 — indoor / outdoor / extras
+ * Compact weather tip tags also live in WeatherWidget.
  */
 export function DailyAdviceSection({
   advice,
   weather,
   showChecklist = true,
-  variantCopyByCategory = {},
+  categoryGuideByCategory = {},
   categoryIcons = {},
   saveContext = null,
   diaperContext = null,
@@ -338,8 +244,8 @@ export function DailyAdviceSection({
   weather: HomeDailyBriefWeather;
   /** When false, show add-baby prompt instead of indoor/outdoor/extras lists. */
   showChecklist?: boolean;
-  /** Variant pros/cons cards keyed by category code. */
-  variantCopyByCategory?: Record<string, VariantCopyCard[]>;
+  /** Parent-facing clothing guide content keyed by category code. */
+  categoryGuideByCategory?: Record<string, CategoryGuideContent>;
   /** Category icon_key / icon_url from DB — overrides built-in seed map. */
   categoryIcons?: Record<string, CategoryIconMeta>;
   /** When set, the checklist can be saved as today's dressing record. */
@@ -364,7 +270,8 @@ export function DailyAdviceSection({
   );
   const [reason, setReason] = useState(source.reason ?? "");
   const [sheetItem, setSheetItem] = useState<AdviceItem | null>(null);
-  const [openSwapKey, setOpenSwapKey] = useState<string | null>(null);
+  const [selectionNotice, setSelectionNotice] = useState("");
+  const [pendingSelection, setPendingSelection] = useState<CompleteSelectionInput | null>(null);
   const [outfitRevision, setOutfitRevision] = useState(0);
   const [wearsDiaper, setWearsDiaper] = useState<boolean | null>(
     diaperContext?.wearsDiaper ?? null
@@ -400,7 +307,8 @@ export function DailyAdviceSection({
     const nextIndoor = source.indoorItems ?? [];
     setIndoorItems(nextIndoor);
     setOutdoorAdditions(source.outdoorAdditions ?? []);
-    setOpenSwapKey(null);
+    setSelectionNotice("");
+    setPendingSelection(null);
     setOutfitRevision((revision) => revision + 1);
     setReason(
       formatAdviceConclusion({
@@ -430,17 +338,23 @@ export function DailyAdviceSection({
   function applySwapAt(
     zone: "indoor" | "outdoor",
     index: number,
-    selectedIndex: number
+    selected: AdviceItem
   ) {
-    const list = zone === "indoor" ? indoorItems : outdoorAdditions;
-    const item = list[index];
-    if (!item) return;
-    const swapped = applySlotSwap(item, selectedIndex);
-    if (!swapped) return;
+    commitSelection({ indoorItems, outdoorAdditions, zone, index, selected,
+      requiredWarmth: source.requiredWarmth, bottomSuggestion: source.bottomSuggestion });
+  }
 
-    const nextList = list.map((entry, i) => (i === index ? swapped : entry));
-    const nextIndoor = zone === "indoor" ? nextList : indoorItems;
-    const nextOutdoor = zone === "outdoor" ? nextList : outdoorAdditions;
+  function commitSelection(input: CompleteSelectionInput) {
+    const result = completeChecklistSelection(input);
+    setSelectionNotice(result.error ?? result.notice);
+    if (result.needsBottomDecision) {
+      setPendingSelection(input);
+      return;
+    }
+    setPendingSelection(null);
+    if (result.error) return;
+    const nextIndoor = result.indoorItems;
+    const nextOutdoor = result.outdoorAdditions;
     setIndoorItems(nextIndoor);
     setOutdoorAdditions(nextOutdoor);
     if (saveContext) {
@@ -501,18 +415,19 @@ export function DailyAdviceSection({
   };
   const liveAdvice: BriefAdvice = { ...advice, current: liveCurrent };
 
-  const sheetCards =
+  const sheetGuide =
     sheetItem?.category != null
-      ? (variantCopyByCategory[sheetItem.category] ?? [])
-      : [];
+      ? categoryGuideByCategory[sheetItem.category]
+      : undefined;
 
   return (
     <section className="flex flex-col gap-section-spacing" aria-label="穿搭建议与清单">
       <div
-        className="rounded-2xl border border-tertiary-fixed-dim/30 bg-indoor-surface p-card-padding shadow-[0px_4px_12px_rgba(0,0,0,0.03)]"
+        className="advice-surface"
         aria-label="穿搭建议"
       >
-        <h2 className="font-headline-md mb-2 text-on-tertiary-container">
+        <h2 className="advice-heading font-headline-md text-on-surface">
+          <MaterialIcon name="chat_bubble" filled />
           {COPY.adviceTitle}
         </h2>
         {conclusionBlocks.length > 0 && (
@@ -525,7 +440,9 @@ export function DailyAdviceSection({
         )}
       </div>
 
-      <div className="flex flex-col gap-stack-gap" aria-label="穿搭清单">
+      <AdviceTips blocks={conclusionBlocks} />
+
+      <div className="outfit-checklist flex flex-col gap-stack-gap" aria-label="穿搭清单">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h3 className="font-headline-md text-on-surface">{COPY.checklistTitle}</h3>
           {showChecklist && saveContext ? (
@@ -545,6 +462,17 @@ export function DailyAdviceSection({
           <AddBabyChecklistPrompt />
         ) : (
           <>
+            {selectionNotice ? <p role="status" className="mb-3 font-label-sm text-on-surface-variant">{selectionNotice}</p> : null}
+            {pendingSelection ? (
+              <div className="mb-3 flex flex-wrap gap-2" aria-label="是否保留已调整的裤装">
+                <button type="button" className="min-h-12 rounded-lg bg-primary px-3 font-label-sm text-on-primary"
+                  onClick={() => commitSelection({ ...pendingSelection, bottomDecision: "keep" })}>保留裤子</button>
+                <button type="button" className="min-h-12 rounded-lg border border-outline-variant px-3 font-label-sm"
+                  onClick={() => commitSelection({ ...pendingSelection, bottomDecision: "remove" })}>移除裤子</button>
+                <button type="button" className="min-h-12 rounded-lg px-3 font-label-sm"
+                  onClick={() => { setPendingSelection(null); setSelectionNotice("已取消切换"); }}>取消切换</button>
+              </div>
+            ) : null}
             <BentoSection heading={COPY.indoorHeading}>
               {filteredIndoorItems.map((item) => {
                 const index = indoorItems.indexOf(item);
@@ -554,20 +482,14 @@ export function DailyAdviceSection({
                   item={item}
                   zone="indoor"
                   categoryIcons={categoryIcons}
-                  swapOpen={openSwapKey === swapKey("indoor", item, index >= 0 ? index : 0)}
-                  onSwapOpenChange={(open) =>
-                    setOpenSwapKey(
-                      open ? swapKey("indoor", item, index >= 0 ? index : 0) : null
-                    )
-                  }
                   onOpen={
                     item.kind === "category" && item.category
                       ? () => openForCategory(item)
                       : undefined
                   }
-                  onSwapSelect={
+                  onSelectItem={
                     item.kind === "category" && index >= 0
-                      ? (selectedIndex) => applySwapAt("indoor", index, selectedIndex)
+                      ? (selected) => applySwapAt("indoor", index, selected)
                       : undefined
                   }
                 />
@@ -587,18 +509,14 @@ export function DailyAdviceSection({
                     item={item}
                     zone="outdoor"
                     categoryIcons={categoryIcons}
-                    swapOpen={openSwapKey === swapKey("outdoor", item, index)}
-                    onSwapOpenChange={(open) =>
-                      setOpenSwapKey(open ? swapKey("outdoor", item, index) : null)
-                    }
                     onOpen={
                       item.kind === "category" && item.category
                         ? () => openForCategory(item)
                         : undefined
                     }
-                    onSwapSelect={
+                    onSelectItem={
                       item.kind === "category"
-                        ? (selectedIndex) => applySwapAt("outdoor", index, selectedIndex)
+                        ? (selected) => applySwapAt("outdoor", index, selected)
                         : undefined
                     }
                   />
@@ -620,9 +538,8 @@ export function DailyAdviceSection({
       {sheetItem ? (
         <CategoryStyleSheet
           categoryLabel={sheetItem.label}
-          cards={sheetCards}
-          recommendedTitle={sheetItem.label}
-          recommendedSubtitle={sheetItem.subtitle}
+          guide={sheetGuide}
+          item={sheetItem}
           onClose={() => setSheetItem(null)}
         />
       ) : null}

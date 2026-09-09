@@ -1,0 +1,1 @@
+<view class="page"><text style="font-size:44rpx;font-weight:700">{{message}}</text><view class="hint" style="margin-top:24rpx">你现在可以调用暖宝宝的宝宝档案、天气和穿衣记录接口。</view><view wx:if="{{error}}" class="error">{{error}}</view><button class="primary" bindtap="logout">退出登录</button></view>

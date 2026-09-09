@@ -109,13 +109,19 @@ export interface AdviceItem {
   sockHeight?: string | null;
   pantLength?: string | null;
   hatKind?: string | null;
-  /** Variant warmth_value (0–100) for checklist card / zone totals. */
+  /** Weighted card contribution; all garment cards sum to requiredWarmth. */
   warmthValue?: number;
+  /** Original variant score, kept separate from the allocated card contribution. */
+  baseWarmthValue?: number;
   /** Short pros/cons for checklist card (compact display). */
   pros?: string;
   cons?: string;
   /** Ranked same-slot looks; omitted on saved dressing records. */
   alternatives?: SlotSwapOption[];
+  /** Flat, weather-filtered variant pool, anchored to the original recommendation. */
+  selectionVariants?: AdviceItem[];
+  autoAddedBottom?: boolean;
+  userModified?: boolean;
   /** Popover sections; options mirror `alternatives` order when flattened. */
   alternativeGroups?: SlotSwapGroup[];
 }
@@ -145,10 +151,12 @@ export interface AdviceExtra {
  * Bump when checklist assembly / payload shape changes so cached home_daily_briefs
  * regenerate (e.g. garment_variants-driven labels, conclusion 大类 names, slot 换一换).
  */
-export const BRIEF_ADVICE_SCHEMA_VERSION = 20;
+export const BRIEF_ADVICE_SCHEMA_VERSION = 27;
 
 /** One dressing checklist (indoor / outdoor / extras). */
 export interface DressingAdvice {
+  /** Eligible default and fixed choices for completing an outfit after a top swap. */
+  bottomSuggestion?: AdviceItem;
   indoorItems: AdviceItem[];
   outdoorAdditions: AdviceItem[];
   extras: AdviceExtra[];

@@ -21,7 +21,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="主导航"
-      className="fixed bottom-0 left-0 z-50 w-full border-t border-outline-variant/40 bg-surface-container-lowest px-2 pt-1.5 pb-safe shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] md:hidden"
+      className="fixed bottom-0 left-0 z-50 w-full border-t border-outline-variant/40 bg-surface-container-lowest px-2 pt-1.5 pb-safe "
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-around">
         {tabs.map((tab) => {

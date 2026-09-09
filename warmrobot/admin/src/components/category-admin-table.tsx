@@ -1,5 +1,6 @@
 "use client";
 
+import { categoryIconKey } from "@warmrobot/core/admin";
 import { useRef, useState, useTransition } from "react";
 import {
   addProductLink,
@@ -251,21 +252,21 @@ export function CategoryAdminTable({ initialCategories }: Props) {
                         />
                       ) : (
                         <MaterialIcon
-                          name={cat.icon_key || "category"}
+                          name={categoryIconKey(cat.code, cat.icon_key)}
                           className="text-[22px] text-primary"
                         />
                       )}
                     </div>
                     <select
                       className="max-w-[9rem] rounded border border-outline-variant bg-surface px-1 py-1 text-xs"
-                      value={cat.icon_key ?? ""}
+                      value={categoryIconKey(cat.code, cat.icon_key)}
                       onChange={(e) => {
                         const icon_key = e.target.value || null;
                         patchLocal(cat.id, { icon_key });
                         saveField(cat.id, { icon_key });
                       }}
                     >
-                      <option value="">（无）</option>
+                      <option value="">按品类自动匹配</option>
                       {PRESET_ICONS.map((icon) => (
                         <option key={icon.value} value={icon.value}>
                           {icon.label}

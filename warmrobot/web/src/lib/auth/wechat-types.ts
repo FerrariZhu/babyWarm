@@ -1,14 +1,7 @@
-/** Default mock WeChat account for local dev (see /api/auth/wechat/mock). */
-export const WECHAT_MOCK_DEFAULTS = {
-  openid: "mock_openid_wx_demo_001",
-  wechat_id: "demo_wx_parent",
-  phone: "13800138000",
-  display_name: "微信演示家长",
-} as const;
-
 export type WechatAuthInput = {
   openid: string;
-  wechat_id: string;
+  /** 微信小程序不会提供微信号；仅在用户主动补充时保存。 */
+  wechat_id?: string;
   phone: string;
   display_name?: string;
 };

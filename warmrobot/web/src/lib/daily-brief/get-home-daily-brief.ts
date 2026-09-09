@@ -1,7 +1,9 @@
 import {
   buildBriefAdvice,
   groupVariantCopyByCategory,
+  groupCategoryGuidesByCategory,
   isBriefAdviceCurrent,
+  mapCategoryGuideRow,
   mapVariantCopyRow,
   reverseGeocode,
   type BabyProfile,
@@ -10,6 +12,8 @@ import {
   type VariantCopyCard,
   type VariantCopyRow,
   type VariantSlimRow,
+  type CategoryGuideContent,
+  type CategoryGuideRow,
   type WeatherResult,
 } from "@warmrobot/core";
 import type { DbBaby, DbProfile } from "@/lib/db/types";
@@ -32,6 +36,8 @@ export type HomeDailyBriefPageData = {
   observedAtDisplay: string | null;
   /** Variant pros/cons cards for checklist half-sheet, keyed by category code. */
   variantCopyByCategory: Record<string, VariantCopyCard[]>;
+  /** Parent-facing guide content by category, including category / style / material levels. */
+  categoryGuideByCategory: Record<string, CategoryGuideContent>;
   /** Category icons from DB for checklist cards. */
   categoryIcons: Record<string, CategoryIconMeta>;
   /** Whether the active baby already has a dressing record for today. */
@@ -185,6 +191,7 @@ export async function getHomeDailyBriefPageData(options?: {
   const [
     { data: variantRows },
     { data: categoryRows },
+    { data: categoryGuideRows },
   ] = await Promise.all([
       supabase
         .from("garment_variants")
@@ -194,6 +201,9 @@ export async function getHomeDailyBriefPageData(options?: {
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
       supabase.from("categories").select("code, outfit_slot, icon_key, icon_url").eq("is_active", true),
+      supabase
+        .from("category_guide_contents")
+        .select("category_code, intro, style_guides, material_guides"),
     ]);
 
   const categoryIcons: Record<string, CategoryIconMeta> = {};
@@ -207,6 +217,9 @@ export async function getHomeDailyBriefPageData(options?: {
 
   const variantCopyByCategory = groupVariantCopyByCategory(
     ((variantRows ?? []) as VariantCopyRow[]).map((row) => mapVariantCopyRow(row))
+  );
+  const categoryGuideByCategory = groupCategoryGuidesByCategory(
+    ((categoryGuideRows ?? []) as CategoryGuideRow[]).map(mapCategoryGuideRow)
   );
 
   const slotByCode = new Map(
@@ -229,6 +242,7 @@ export async function getHomeDailyBriefPageData(options?: {
         brief: null,
         observedAtDisplay: null,
         variantCopyByCategory,
+        categoryGuideByCategory,
         categoryIcons,
         savedToday: false,
       };
@@ -250,6 +264,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief,
       observedAtDisplay: formatObservedAtDisplay(brief.weather.observedAt),
       variantCopyByCategory,
+      categoryGuideByCategory,
       categoryIcons,
       savedToday: false,
     };
@@ -289,6 +304,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief: cached,
       observedAtDisplay: formatObservedAtDisplay(cached.weather.observedAt),
       variantCopyByCategory,
+      categoryGuideByCategory,
       categoryIcons,
       savedToday,
     };
@@ -303,6 +319,7 @@ export async function getHomeDailyBriefPageData(options?: {
         brief: cached,
         observedAtDisplay: formatObservedAtDisplay(cached.weather.observedAt),
         variantCopyByCategory,
+        categoryGuideByCategory,
         categoryIcons,
         savedToday,
       };
@@ -314,6 +331,7 @@ export async function getHomeDailyBriefPageData(options?: {
       brief: null,
       observedAtDisplay: null,
       variantCopyByCategory,
+      categoryGuideByCategory,
       categoryIcons,
       savedToday,
     };
@@ -353,6 +371,7 @@ export async function getHomeDailyBriefPageData(options?: {
     brief,
     observedAtDisplay: formatObservedAtDisplay(brief.weather.observedAt),
     variantCopyByCategory,
+    categoryGuideByCategory,
     categoryIcons,
     savedToday,
   };

@@ -1,9 +1,8 @@
 /**
- * 清空 Supabase 中的 mock 与用户脏数据。
+ * 清空 Supabase 中明确标记的 mock / demo 数据。
  * 需要 web/.env.local 中的 SUPABASE_DB_URL（Database → Connection string → URI）
  *
  *   node scripts/clear-dirty-data.mjs
- *   node scripts/clear-dirty-data.mjs --include-all-users   # 同时删除所有 auth 用户
  */
 
 import { readFileSync } from "node:fs";
@@ -38,8 +37,6 @@ function loadEnvFile(path) {
 
 loadEnvFile(join(WEB_ROOT, ".env.local"));
 
-const includeAllUsers = process.argv.includes("--include-all-users");
-
 async function clearViaApi() {
   const { createClient } = await import("@supabase/supabase-js");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -52,8 +49,9 @@ async function clearViaApi() {
   const sb = createClient(url, key);
   let cleared = 0;
 
-  for (let i = 1; i <= 50; i++) {
-    const email = `demo_user_${i}@baby-outfit.dev`;
+  for (const domain of ["warmrobot.dev", "baby-outfit.dev"]) {
+    for (let i = 1; i <= 50; i++) {
+      const email = `demo_user_${i}@${domain}`;
     const { error: signErr } = await sb.auth.signInWithPassword({
       email,
       password: "password123",
@@ -77,7 +75,8 @@ async function clearViaApi() {
       }
     }
     await sb.auth.signOut();
-    cleared++;
+      cleared++;
+    }
   }
 
   console.log(`API 已清理 ${cleared} 个 demo 账号下的业务数据（不含 weather / catalog / auth）`);
@@ -96,19 +95,37 @@ async function clearViaPostgres() {
     "utf8"
   );
 
-  if (includeAllUsers) {
-    sql = sql.replace(
-      /^-- delete from auth\.identities;\n-- delete from auth\.users;/m,
-      "delete from auth.identities;\ndelete from auth.users;"
-    );
-  }
-
   const pg = (await import("pg")).default;
   const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
   await client.connect();
   try {
+    const { rows: mockUsers } = await client.query(
+      `select id::text as id from auth.users
+       where email like 'demo_user_%@warmrobot.dev'
+          or email like 'demo_user_%@baby-outfit.dev'
+          or email like 'wechat+mock_openid_%@auth.warmrobot.dev'`
+    );
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    if (mockUsers.length > 0 && (!serviceKey || !url)) {
+      throw new Error("缺少 SUPABASE_SERVICE_ROLE_KEY，无法安全清理 demo 衣柜图片");
+    }
+    if (mockUsers.length > 0) {
+      const { createClient } = await import("@supabase/supabase-js");
+      const storage = createClient(url, serviceKey, { auth: { persistSession: false } }).storage.from("clothing-images");
+      for (const { id } of mockUsers) {
+        const { data: files, error: listError } = await storage.list(id, { limit: 1000 });
+        if (listError) throw listError;
+        const paths = (files ?? []).filter((file) => file.name !== ".emptyFolderPlaceholder").map((file) => `${id}/${file.name}`);
+        if (paths.length > 0) {
+          const { error: removeError } = await storage.remove(paths);
+          if (removeError) throw removeError;
+        }
+      }
+    }
     await client.query(sql);
-    console.log("Postgres 清理完成（含 mock 种子、缓存、商品目录、demo 用户）");
+    console.log("Postgres 清理完成（仅明确标记的 mock 种子与 demo 用户）");
   } finally {
     await client.end();
   }
@@ -123,7 +140,7 @@ async function main() {
   console.log("未配置 SUPABASE_DB_URL，先通过 demo 账号 API 清理用户数据…");
   await clearViaApi();
   console.log(
-    "\n要完成全库清理（weather_cache、product_catalog、demo auth 用户等），请任选其一：\n" +
+    "\n要完成 demo 用户清理，请任选其一：\n" +
       "  1. 在 web/.env.local 设置 SUPABASE_DB_URL 后重新运行本脚本\n" +
       "  2. 在 Supabase Dashboard → SQL Editor 粘贴执行 supabase/scripts/clear_dirty_data.sql"
   );

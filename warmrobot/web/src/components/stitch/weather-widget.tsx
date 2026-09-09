@@ -3,7 +3,7 @@
 import type { AdviceTipTag, AdviceTipTagTone } from "@warmrobot/core/client";
 import { resolveAdviceTipTags } from "@warmrobot/core/client";
 import { MaterialIcon } from "./material-icon";
-import { weatherIcon } from "@/lib/stitch-utils";
+import { WeatherArtwork } from "./weather-artwork";
 
 function uvLabel(uv: number): string {
   if (uv < 3) return "低";
@@ -32,8 +32,10 @@ function MetricCell({
   iconClass?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-surface-variant/30 bg-surface-container-lowest/80 px-1.5 py-2">
-      <MaterialIcon name={icon} className={`mb-0.5 text-[18px] ${iconClass ?? "text-primary"}`} />
+    <div className="weather-metric-cell flex flex-col items-center justify-center px-1.5 py-1">
+      <span className="weather-metric-icon" data-motion={icon} key={`${icon}-${value}`} aria-hidden="true">
+        <MaterialIcon name={icon} className={`text-[22px] ${iconClass ?? "text-primary"}`} />
+      </span>
       <span className="font-label-sm text-text-soft">{label}</span>
       <span className="font-label-md text-on-surface">{value}</span>
     </div>
@@ -94,7 +96,7 @@ export function WeatherContextRow({
   onPickLocation: () => void;
 }) {
   return (
-    <div className="relative z-10 -mx-1.5 mb-1.5 flex min-w-0 items-center">
+    <div className="weather-context-row relative z-10 flex min-w-0 items-center">
       <ContextPickButton
         icon="schedule"
         label={timeLabel}
@@ -159,19 +161,15 @@ export function WeatherWidget({
 }) {
   const uv = weather.uvIndex ?? 0;
   const uvHigh = uv >= 6;
-  const precip = weather.precipProbability;
-  const precipAlert = precip != null && precip >= 50;
+  // 仅在极端条件下展示摘要；常规提醒由下方气象指标和标签承载。
   const summaryParts = [
-    Math.abs(weather.feelsLike - weather.temp) >= 3
-      ? `体感 ${Math.round(weather.feelsLike)}°C`
-      : null,
-    uvHigh ? "紫外线偏高" : null,
-    precipAlert ? `降水 ${Math.round(precip)}%` : null,
+    Math.max(weather.temp, weather.feelsLike) >= 35 ? "高温天气" : null,
+    Math.min(weather.temp, weather.feelsLike) <= -10 ? "严寒天气" : null,
+    weather.windSpeed >= 20 ? "强风天气" : null,
+    uv >= 11 ? "紫外线极强" : null,
+    /暴雨|暴雪|雷雨|雷暴|冰雹|冻雨|台风/.test(weather.text) ? weather.text : null,
   ].filter(Boolean);
-  const summary =
-    summaryParts.length > 0
-      ? summaryParts.join("，") + "。"
-      : "适宜根据下方清单增减衣物。";
+  const summary = summaryParts.length > 0 ? summaryParts.join("，") + "。" : null;
   const adviceValue =
     requiredWarmth != null && Number.isFinite(requiredWarmth)
       ? Math.round(requiredWarmth)
@@ -190,11 +188,9 @@ export function WeatherWidget({
 
   return (
     <section
-      className="glass-weather relative overflow-hidden rounded-2xl p-card-padding"
+      className="weather-hero glass-weather relative overflow-hidden rounded-2xl p-card-padding"
       aria-label="天气模块"
     >
-      <div className="absolute top-0 right-0 h-32 w-32 translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-fixed opacity-50 mix-blend-multiply blur-2xl" />
-
       <WeatherContextRow
         timeLabel={timeLabel}
         locationLabel={locationLabel}
@@ -202,26 +198,24 @@ export function WeatherWidget({
         onPickLocation={onPickLocation}
       />
 
-      <div className="relative z-10 mb-2.5 flex items-start justify-between gap-2">
+      <div className="weather-overview relative z-10 mb-2.5 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="mb-0.5 flex flex-wrap items-end gap-1.5">
-            <span className="font-headline-lg-mobile text-primary md:font-headline-lg">
-              {Math.round(weather.temp)}°C
+            <span className="weather-temperature text-primary">
+              {Math.round(weather.temp)}<span className="weather-temperature-unit">°C</span>
             </span>
-            <span className="font-label-md mb-1 text-text-soft">{weather.text}</span>
           </div>
-          <p className="font-body-md leading-snug text-on-surface-variant">{summary}</p>
+          <p className="weather-feels-like text-text-soft">
+            体感 {Math.round(weather.feelsLike)}°C · {weather.text}
+          </p>
+          {summary && (
+            <p className="font-body-md leading-snug text-on-surface-variant">{summary}</p>
+          )}
         </div>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-surface-variant/50 bg-surface-container-lowest shadow-sm">
-          <MaterialIcon
-            name={weatherIcon(weather.text)}
-            filled
-            className="text-[28px] text-weather-sunny"
-          />
-        </div>
+        <WeatherArtwork condition={weather.text} />
       </div>
 
-      <div className="relative z-10 grid grid-cols-3 gap-widget-gap">
+      <div className="weather-metrics relative z-10 grid grid-cols-3">
         <MetricCell icon="humidity_percentage" label="湿度" value={`${weather.humidity}%`} />
         <MetricCell
           icon="wb_sunny"
@@ -237,24 +231,24 @@ export function WeatherWidget({
         />
       </div>
 
-      {adviceValue != null && (
-        <div
-          className="relative z-10 mt-2 flex items-center justify-between gap-2 rounded-lg border border-primary/15 bg-primary-fixed/40 px-3 py-2"
-          aria-label={`穿衣指数 ${adviceValue}`}
-        >
-          <div className="min-w-0">
-            <p className="font-label-md text-on-primary-container">穿衣指数</p>
-            <p className="font-label-sm mt-0.5 leading-snug text-text-soft">
-              综合气温、体感、湿度与风速得出，分数越高越需要保暖
-            </p>
-          </div>
-          <span className="font-headline-md shrink-0 tabular-nums text-primary">
-            {adviceValue}
-          </span>
+      {(adviceValue != null || tipTags.length > 0) && (
+        <div className="weather-footer">
+          {adviceValue != null && (
+            <section className="weather-index-panel" aria-label={`穿衣指数 ${adviceValue}`}>
+              <div className="weather-index-description">
+                <p>结合气温、体感、湿度和风速，数值越高，穿得越暖</p>
+                <WeatherTipChips tags={tipTags} />
+              </div>
+              <div className="weather-index-heading">
+                <h3>穿衣指数</h3>
+                <span className="weather-index-value">{adviceValue}</span>
+              </div>
+            </section>
+          )}
+          {adviceValue == null ? <WeatherTipChips tags={tipTags} /> : null}
         </div>
       )}
 
-      <WeatherTipChips tags={tipTags} />
     </section>
   );
 }

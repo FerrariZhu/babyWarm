@@ -35,6 +35,7 @@ export interface WeatherSnapshot {
   temp: number;
   feelsLike: number;
   humidity: number;
+  /** Wind speed at 10 m, in metres per second. */
   windSpeed: number;
   pressure: number;
   text: string;
