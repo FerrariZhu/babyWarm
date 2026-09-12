@@ -28,6 +28,8 @@ test("the advice card owns the clothing index, method, ordered rows, and weather
   assert.match(advice, /pencilGarmentIcon/);
   assert.match(panel, /advice-method/);
   assert.match(panel, /advice-outfit-row/);
+  assert.match(panel, /row\.emphasisTerms/);
+  assert.match(panel, /advice-garment/);
   assert.match(panel, /advice-tip-chips/);
   assert.doesNotMatch(weather, /weather-index-panel/);
   assert.doesNotMatch(weather, /WeatherTipChips/);

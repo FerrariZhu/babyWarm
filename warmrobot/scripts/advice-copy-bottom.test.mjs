@@ -185,18 +185,22 @@ test("outfit rows translate exact garment attributes into conversational copy", 
     {
       zone: "上身",
       text: "最里面穿加厚纯棉秋衣，外面套一件宽松的厚款纯棉毛衣，最外层再穿蓬松保暖的羽绒服。",
+      emphasisTerms: ["秋衣", "毛衣", "羽绒服"],
     },
     {
       zone: "下身",
       text: "里面穿一条加厚纯棉秋裤，外面再加宽松的厚款纯棉长裤。",
+      emphasisTerms: ["秋裤", "长裤"],
     },
     {
       zone: "脚上",
       text: "穿一双保暖的纯棉中筒袜，搭配加绒高帮靴。",
+      emphasisTerms: ["中筒袜", "高帮靴"],
     },
     {
       zone: "配件",
       text: "戴好保暖帽，围上厚棉围巾，再戴纯棉保暖手套。",
+      emphasisTerms: ["保暖帽", "围巾", "手套"],
     },
   ]);
   assert.ok(rows.every((row) => !row.text.includes("标准版")));
@@ -214,6 +218,10 @@ test("zone labels do not repeat inside a single-layer sentence", () => {
   ]);
 
   assert.deepEqual(rows, [
-    { zone: "上身", text: "穿一件轻薄纯棉包屁衣。" },
+    {
+      zone: "上身",
+      text: "穿一件轻薄纯棉包屁衣。",
+      emphasisTerms: ["包屁衣"],
+    },
   ]);
 });
