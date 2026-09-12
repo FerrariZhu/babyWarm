@@ -40,3 +40,9 @@ test("database-backed self-hosted routes use the parameterized query layer", asy
     assert.match(source, /@\/lib\/self-hosted\/database/);
   }
 });
+
+test("baby profile creation gives the optional size parameter an explicit PostgreSQL type", async () => {
+  const source = await readFile(path.join(webRoot, "babies/route.ts"), "utf8");
+
+  assert.match(source, /CASE WHEN \$9::text IS NULL THEN NULL ELSE now\(\) END/);
+});
