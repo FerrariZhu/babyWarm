@@ -25,6 +25,14 @@ test("compose deploys web and admin on the host network without a database conta
   assert.match(source, /env_file:\s*\n\s*- \$\{ENV_FILE:-\.env\.production\}/);
 });
 
+test("admin listens on the public interface used by NEXT_PUBLIC_ADMIN_URL", async () => {
+  const source = await readFile(composePath, "utf8");
+  const adminService = source.split(/^  admin:\s*$/m)[1]?.split(/^  [a-z][a-z0-9-]*:\s*$/m)[0] ?? "";
+
+  assert.match(adminService, /command:.*-H.*0\.0\.0\.0/);
+  assert.doesNotMatch(adminService, /HOSTNAME:\s*127\.0\.0\.1/);
+});
+
 test("deployment template keeps database credentials out of the image", async () => {
   const source = await readFile(envPath, "utf8");
 
