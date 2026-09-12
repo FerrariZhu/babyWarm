@@ -63,7 +63,7 @@ export async function POST(request: Request) {
          INSERT INTO public.babies
            (user_id, name, birth_date, gender, activity_level, is_active, height_cm, weight_kg,
             avatar_url, wears_diaper, current_size_label, current_size_updated_at)
-         VALUES ($1, $2, $3, $4, 'low', true, $5, $6, $7, $8, $9, CASE WHEN $9 IS NULL THEN NULL ELSE now() END)
+         VALUES ($1, $2, $3, $4, 'low', true, $5, $6, $7, $8, $9, CASE WHEN $9::text IS NULL THEN NULL ELSE now() END)
          RETURNING id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper
        ), created_preference AS (
          INSERT INTO public.baby_warmth_preferences (baby_id, warmth_preference)
