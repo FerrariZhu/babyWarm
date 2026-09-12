@@ -12,7 +12,11 @@ export type {
   SlotSwapOption,
 } from "./daily-brief-types";
 
-export type { AdviceConclusionBlock } from "./advice-copy";
+export type {
+  AdviceConclusionBlock,
+  DressingMethodCopy,
+  OutfitAdviceRow,
+} from "./advice-copy";
 export type { CategoryStyleGuide } from "./category-style-guides";
 export type {
   CategoryGuideContent,
@@ -38,6 +42,8 @@ export {
   adviceFingerprint,
   formatAdviceConclusion,
   formatAdviceConclusionBlocks,
+  formatDressingMethod,
+  formatOutfitAdviceRows,
 } from "./advice-copy";
 export {
   DIAPER_OPTIONAL_AGE_MONTHS,

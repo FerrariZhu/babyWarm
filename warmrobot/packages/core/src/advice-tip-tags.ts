@@ -1,6 +1,6 @@
 /**
- * Weather-module tip tags (chips under 穿衣指数).
- * Product: docs/specs/home-daily-brief.md — tip tags live in 天气模块 only.
+ * Compact weather tip tags shown at the end of the merged outfit advice.
+ * Product: docs/specs/home-daily-brief.md — one visible copy, no weather-card duplicate.
  *
  * Exhaustive enum: every code must be handled in evaluateTipTag / tipTagMeta.
  */

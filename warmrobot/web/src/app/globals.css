@@ -1375,3 +1375,159 @@ body { margin: 0; line-height: 1.6; }
     grid-column: 2 / -1;
   }
 }
+
+/* Merged outfit guidance: one readable story from weather to method to garments. */
+.advice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.advice-surface .advice-header .advice-heading {
+  min-width: 0;
+  margin: 0;
+}
+.advice-index {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1;
+}
+.advice-index strong {
+  display: inline-grid;
+  min-width: 34px;
+  height: 30px;
+  place-items: center;
+  padding-inline: 7px;
+  border-radius: 10px;
+  background: var(--color-primary-container);
+  color: var(--color-primary);
+  font-size: 19px;
+  font-weight: 700;
+}
+.advice-content {
+  display: grid;
+  gap: 12px;
+}
+.advice-diaper .advice-support {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.advice-method {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary-fixed) 72%, transparent);
+}
+.advice-method-visual {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 16px;
+  background: rgb(255 253 252 / 72%);
+  box-shadow: 0 5px 14px rgb(71 102 87 / 6%);
+}
+.advice-method-visual img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+.advice-method-visual .material-symbols-outlined {
+  color: var(--color-primary);
+  font-size: 28px;
+}
+.advice-method-copy {
+  min-width: 0;
+}
+.advice-method-copy h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.advice-method-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.advice-method-steps span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(255 253 252 / 70%);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.advice-method-copy p {
+  margin: 4px 0 0;
+  color: var(--color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.advice-outfit {
+  display: grid;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--advice-accent);
+}
+.advice-outfit-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.advice-outfit-row > span {
+  padding-top: 3px;
+  color: var(--advice-accent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.advice-outfit-row p {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.advice-tip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-left: 56px;
+}
+.advice-tip-chips > span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary-container) 72%, transparent);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+}
+@media (max-width: 360px) {
+  .advice-index > span { display: none; }
+  .advice-method { grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding-inline: 10px; }
+  .advice-method-visual { width: 46px; height: 46px; }
+  .advice-method-visual img { width: 40px; height: 40px; }
+  .advice-outfit { padding-left: 10px; }
+  .advice-outfit-row { grid-template-columns: 34px minmax(0, 1fr); gap: 6px; }
+  .advice-tip-chips { padding-left: 46px; }
+}

@@ -65,6 +65,19 @@ const COLD_ACCESSORY_CATEGORIES = new Set<ClothingCategory>([
   "gloves",
 ]);
 
+export interface DressingMethodCopy {
+  title: string;
+  steps: string[];
+  note: string;
+}
+
+export type OutfitAdviceZone = "上身" | "下身" | "脚上" | "配件";
+
+export interface OutfitAdviceRow {
+  zone: OutfitAdviceZone;
+  text: string;
+}
+
 /** Friendlier outer names for caregiver copy (checklist label still drives specifics). */
 const FRIENDLY_OUTER_LABEL: Partial<Record<ClothingCategory, string>> = {
   outer_cotton: "厚棉服",
@@ -81,6 +94,48 @@ export function heatFromRequiredWarmth(requiredWarmth: number): HeatSlot {
   if (requiredWarmth < 70) return "cool";
   if (requiredWarmth < 85) return "cold";
   return "freezing";
+}
+
+/** A caregiver-facing dressing strategy matched to today's warmth band. */
+export function formatDressingMethod(requiredWarmth: number): DressingMethodCopy {
+  switch (heatFromRequiredWarmth(requiredWarmth)) {
+    case "hot":
+      return {
+        title: "单层清爽穿衣法",
+        steps: ["一层穿好", "轻薄透气"],
+        note: "出汗后及时换上干爽衣服",
+      };
+    case "warm":
+      return {
+        title: "轻薄分层穿衣法",
+        steps: ["内层透气", "外层轻薄"],
+        note: "热了就及时减一层",
+      };
+    case "mild":
+      return {
+        title: "两层调温穿衣法",
+        steps: ["内层亲肤", "外层挡风"],
+        note: "早晚凉时把外层穿上",
+      };
+    case "cool":
+      return {
+        title: "基础洋葱穿衣法",
+        steps: ["内层舒适", "中层保暖", "外层挡风"],
+        note: "冷热变化时方便增减",
+      };
+    case "cold":
+      return {
+        title: "三层洋葱穿衣法",
+        steps: ["内层保暖", "中层锁温", "外层防风"],
+        note: "进屋后再逐层脱下",
+      };
+    case "freezing":
+      return {
+        title: "加强型洋葱穿衣法",
+        steps: ["内层保暖", "中层锁温", "外层挡风雪"],
+        note: "进屋后再逐层脱下",
+      };
+  }
 }
 
 export function rainFromWeather(weather: WeatherSnapshot): RainSlot {
@@ -207,6 +262,130 @@ function spokenLabel(raw: string): string {
 
 function isBodysuitItem(item: AdviceItem): boolean {
   return item.category === "bodysuit_short" || item.category === "bodysuit_long";
+}
+
+const MATERIAL_COPY: Record<string, string> = {
+  cotton: "纯棉",
+  modal: "莫代尔",
+  acrylic: "腈纶",
+  polyester: "速干",
+  wool: "羊毛",
+  fleece: "抓绒",
+  down: "羽绒",
+};
+
+function materialWord(item: AdviceItem): string {
+  const word = item.material ? MATERIAL_COPY[item.material] ?? "" : "";
+  return word && !spokenLabel(item.label).includes(word) ? word : "";
+}
+
+function fitLead(item: AdviceItem): string {
+  if (item.fitType === "loose") return "宽松的";
+  if (item.fitType === "slim") return "贴身的";
+  return "";
+}
+
+/** Precise variant axes translated into natural caregiver language. */
+export function conversationalGarmentPhrase(item: AdviceItem): string {
+  const label = spokenLabel(item.label ?? "");
+  if (!label) return "";
+
+  if (item.category === "outer_down") {
+    if (item.thickness === "extreme_cold") return "蓬松保暖的羽绒服";
+    if (item.thickness === "lightweight") return "轻薄的羽绒服";
+    return "保暖的羽绒服";
+  }
+  if (item.category === "shoes_boot") {
+    return item.thickness === "fleece_lined" ? "加绒高帮靴" : label;
+  }
+  if (item.category === "socks") {
+    const height = item.sockHeight === "over_calf"
+      ? "长筒"
+      : item.sockHeight === "mid_calf"
+        ? "中筒"
+        : item.sockHeight === "no_show"
+          ? "船"
+          : item.sockHeight === "ankle"
+            ? "短筒"
+            : "";
+    const warmth = item.thickness === "thick" ? "保暖的" : item.thickness === "thin" ? "轻薄的" : "";
+    return `${warmth}${materialWord(item)}${height}袜`;
+  }
+  if (item.category === "scarf") {
+    return `${item.thickness === "thick" ? "厚" : ""}${item.material === "cotton" ? "棉" : materialWord(item)}围巾`;
+  }
+  if (item.category === "gloves") {
+    return `${materialWord(item)}${item.thickness === "thick" ? "保暖" : ""}手套`;
+  }
+  if (item.category === "hat") return label;
+
+  const thickness = item.thickness === "thick"
+    ? item.category === "thermal_top" || item.category === "long_johns"
+      ? "加厚"
+      : "厚款"
+    : item.thickness === "thin"
+      ? "轻薄"
+      : item.thickness === "fleece_lined"
+        ? "加绒"
+        : "";
+  return `${fitLead(item)}${thickness}${materialWord(item)}${label}`;
+}
+
+function firstItem(items: AdviceItem[], slot: string): AdviceItem | undefined {
+  return items.find((item) => item.kind === "category" && item.outfitSlot === slot);
+}
+
+/** Ordered, conversational outfit instructions: inside-out and top-down. */
+export function formatOutfitAdviceRows(
+  requiredWarmth: number,
+  outfitItems: AdviceItem[]
+): OutfitAdviceRow[] {
+  const rows: OutfitAdviceRow[] = [];
+  const base = firstItem(outfitItems, "base_top");
+  const mid = firstItem(outfitItems, "mid_top");
+  const outer = firstItem(outfitItems, "outer");
+  const baseBottom = firstItem(outfitItems, "base_bottom");
+  const bottom = firstItem(outfitItems, "bottom");
+  const socks = firstItem(outfitItems, "socks");
+  const shoes = firstItem(outfitItems, "shoes");
+
+  const topParts: string[] = [];
+  if (base) {
+    topParts.push(mid || outer
+      ? `最里面穿${conversationalGarmentPhrase(base)}`
+      : `上身穿一件${conversationalGarmentPhrase(base)}`);
+  }
+  if (mid) topParts.push(`外面套一件${conversationalGarmentPhrase(mid)}`);
+  if (outer) topParts.push(`最外层再穿${conversationalGarmentPhrase(outer)}`);
+  if (topParts.length > 0) rows.push({ zone: "上身", text: `${topParts.join("，")}。` });
+
+  const bottomParts: string[] = [];
+  if (baseBottom) bottomParts.push(`里面穿一条${conversationalGarmentPhrase(baseBottom)}`);
+  if (bottom) {
+    bottomParts.push(baseBottom
+      ? `外面再加${conversationalGarmentPhrase(bottom)}`
+      : `穿一条${conversationalGarmentPhrase(bottom)}`);
+  }
+  if (bottomParts.length === 0 && requiredWarmth >= 70) {
+    bottomParts.push("补穿一条保暖长裤");
+  }
+  if (bottomParts.length > 0) rows.push({ zone: "下身", text: `${bottomParts.join("，")}。` });
+
+  const feetParts: string[] = [];
+  if (socks) feetParts.push(`穿一双${conversationalGarmentPhrase(socks)}`);
+  if (shoes) feetParts.push(`${socks ? "搭配" : "穿上"}${conversationalGarmentPhrase(shoes)}`);
+  if (feetParts.length > 0) rows.push({ zone: "脚上", text: `${feetParts.join("，")}。` });
+
+  const hat = firstItem(outfitItems, "hat");
+  const scarf = firstItem(outfitItems, "scarf");
+  const gloves = firstItem(outfitItems, "gloves");
+  const accessoryParts: string[] = [];
+  if (hat) accessoryParts.push(`戴好${conversationalGarmentPhrase(hat)}`);
+  if (scarf) accessoryParts.push(`围上${conversationalGarmentPhrase(scarf)}`);
+  if (gloves) accessoryParts.push(`${accessoryParts.length > 0 ? "再" : ""}戴${conversationalGarmentPhrase(gloves)}`);
+  if (accessoryParts.length > 0) rows.push({ zone: "配件", text: `${accessoryParts.join("，")}。` });
+
+  return rows;
 }
 
 /** 「脚上穿一双薄袜子」— never 「袜子穿袜子」. */

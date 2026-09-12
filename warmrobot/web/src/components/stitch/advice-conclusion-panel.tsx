@@ -1,6 +1,11 @@
 "use client";
 
-import type { AdviceConclusionBlock } from "@warmrobot/core/client";
+import type {
+  AdviceConclusionBlock,
+  AdviceTipTag,
+  DressingMethodCopy,
+  OutfitAdviceRow,
+} from "@warmrobot/core/client";
 import { DiaperConfirmPrompt } from "@/components/stitch/diaper-confirm-prompt";
 import { MaterialIcon } from "./material-icon";
 
@@ -14,11 +19,19 @@ function tipLines(blocks: AdviceConclusionBlock[]): string[] {
 /** Narrative part of the dressing recommendation: weather summary → diaper guidance → what to wear. */
 export function AdviceConclusionPanel({
   blocks,
+  method,
+  methodIconSrc,
+  outfitRows,
+  tipTags,
   showDiaperPrompt = false,
   diaperPromptBabyId,
   onDiaperPromptAnswered,
 }: {
   blocks: AdviceConclusionBlock[];
+  method: DressingMethodCopy;
+  methodIconSrc?: string;
+  outfitRows: OutfitAdviceRow[];
+  tipTags: AdviceTipTag[];
   showDiaperPrompt?: boolean;
   diaperPromptBabyId?: string;
   onDiaperPromptAnswered?: (wearsDiaper: boolean) => void;
@@ -27,8 +40,7 @@ export function AdviceConclusionPanel({
 
   const weather = blocks.find((b) => b.kind === "weather");
   const diaper = blocks.find((b) => b.kind === "diaper");
-  const wear = blocks.find((b) => b.kind === "wear");
-  const hasBody = Boolean(diaper?.lines[0] || (wear?.lines.length ?? 0) > 0);
+  const hasBody = Boolean(diaper?.lines[0] || outfitRows.length > 0);
 
   return (
     <>
@@ -36,11 +48,10 @@ export function AdviceConclusionPanel({
         <p className="advice-weather">{weather.lines[0]}</p>
       ) : null}
 
-      <article className="advice-quote flex flex-col gap-2">
       {hasBody ? (
-        <div className="font-body-md space-y-1.5 leading-[1.55] text-on-surface">
+        <div className="advice-content text-on-surface">
           {diaper?.lines[0] ? (
-            <div>
+            <div className="advice-diaper">
               <p className="advice-support">{diaper.lines[0]}</p>
               {showDiaperPrompt && diaperPromptBabyId ? (
                 <DiaperConfirmPrompt
@@ -50,22 +61,45 @@ export function AdviceConclusionPanel({
               ) : null}
             </div>
           ) : null}
-          {wear && wear.lines.length > 0 ? (
-            <ul className="advice-wear">
-              {wear.lines.map((line) => (
-                <li key={line}>
-                  {line.split(/(包屁衣|防晒衣|防风开衫|开衫|外套|长袖|短袖|纯棉|袜子|遮阳帽|凉鞋|运动鞋)/g).map((part, index) =>
-                    index % 2 === 1 ? <strong key={index}>{part}</strong> : part
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : null}
 
+          <section className="advice-method" aria-label={method.title}>
+            <span className="advice-method-visual" aria-hidden="true">
+              {methodIconSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={methodIconSrc} alt="" />
+              ) : (
+                <MaterialIcon name="checkroom" />
+              )}
+            </span>
+            <div className="advice-method-copy">
+              <h3>{method.title}</h3>
+              <div className="advice-method-steps">
+                {method.steps.map((step) => <span key={step}>{step}</span>)}
+              </div>
+              <p>{method.note}</p>
+            </div>
+          </section>
+
+          {outfitRows.length > 0 ? (
+            <div className="advice-outfit" aria-label="今日穿衣建议">
+              {outfitRows.map((row) => (
+                <div className="advice-outfit-row" key={row.zone}>
+                  <span>{row.zone}</span>
+                  <p>{row.text}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      </article>
+      {tipTags.length > 0 ? (
+        <div className="advice-tip-chips" aria-label="天气提醒">
+          {tipTags.map((tag) => (
+            <span key={tag.code} data-tone={tag.tone}>{tag.label}</span>
+          ))}
+        </div>
+      ) : null}
     </>
   );
 }

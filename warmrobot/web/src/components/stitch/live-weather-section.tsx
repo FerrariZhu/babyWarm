@@ -72,14 +72,11 @@ export function LiveWeatherSection({
   fallbackWeather,
   fallbackLocationLabel,
   fallbackObservedAtDisplay,
-  requiredWarmth,
   selectedHourKey = null,
 }: {
   fallbackWeather?: WeatherView | null;
   fallbackLocationLabel?: string | null;
   fallbackObservedAtDisplay?: string | null;
-  /** 穿衣指数（0–100，内部 requiredWarmth），展示在天气模块气象指标下方 */
-  requiredWarmth?: number | null;
   selectedHourKey?: string | null;
 }) {
   const router = useRouter();
@@ -379,7 +376,6 @@ export function LiveWeatherSection({
       <div data-analytics-module="weather" className="flex flex-col gap-3 pt-2">
         <WeatherWidget
           weather={weather}
-          requiredWarmth={requiredWarmth}
           {...context}
         />
         {isSyncing && (

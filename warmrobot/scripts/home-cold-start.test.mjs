@@ -9,5 +9,5 @@ test("home cold start shows the add-baby prompt instead of generated advice", as
 
   assert.match(source, /baby && brief && \([\s\S]*?<DailyAdviceSection/);
   assert.match(source, /\{!baby && \([\s\S]*?<AddBabyChecklistPrompt/);
-  assert.match(source, /requiredWarmth=\{baby \? brief\.advice\.current\.requiredWarmth : null\}/);
+  assert.doesNotMatch(source, /requiredWarmth=\{baby \? brief\.advice\.current\.requiredWarmth : null\}/);
 });

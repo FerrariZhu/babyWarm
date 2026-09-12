@@ -44,7 +44,6 @@ export default async function HomePage({
               }}
               fallbackLocationLabel={brief.weather.locationLabel}
               fallbackObservedAtDisplay={observedAtDisplay}
-              requiredWarmth={baby ? brief.advice.current.requiredWarmth : null}
               selectedHourKey={hourOverride}
             />
           </>

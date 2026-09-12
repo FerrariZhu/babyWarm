@@ -1,8 +1,6 @@
 "use client";
 
-import type { AdviceTipTag, AdviceTipTagTone } from "@warmrobot/core/client";
-import { resolveAdviceTipTags } from "@warmrobot/core/client";
-import { pencilGarmentIcon, pencilMetricIcon } from "@/lib/pencil-icons";
+import { pencilMetricIcon } from "@/lib/pencil-icons";
 import { WeatherArtwork } from "./weather-artwork";
 
 function WeatherControlIcon({ name, className = "" }: { name: "clock" | "location" | "chevron-down"; className?: string }) {
@@ -13,17 +11,6 @@ function WeatherControlIcon({ name, className = "" }: { name: "clock" | "locatio
   } as const;
 
   return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`weather-control-icon ${className}`}>{paths[name]}</svg>;
-}
-
-function WeatherIndexIcon() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={pencilGarmentIcon("garment_tshirt_short")}
-      alt=""
-      className="weather-index-garment"
-    />
-  );
 }
 
 function windLabel(windSpeedMs: number): string {
@@ -52,21 +39,6 @@ function MetricCell({
       <span className="font-label-md text-on-surface">{value}</span>
     </div>
   );
-}
-
-function tipToneClass(tone: AdviceTipTagTone): string {
-  switch (tone) {
-    case "uv":
-      return "bg-weather-uv-alert/10 text-weather-uv-alert";
-    case "rain":
-      return "bg-weather-rainy/15 text-weather-rainy";
-    case "wind":
-      return "bg-weather-windy/15 text-weather-windy";
-    default: {
-      const _exhaustive: never = tone;
-      return _exhaustive;
-    }
-  }
 }
 
 function ContextPickButton({
@@ -128,29 +100,12 @@ export function WeatherContextRow({
   );
 }
 
-function WeatherTipChips({ tags }: { tags: AdviceTipTag[] }) {
-  if (tags.length === 0) return null;
-  return (
-    <div className="relative z-10 mt-2 flex flex-wrap gap-1.5" aria-label="天气提醒">
-      {tags.map((tag) => (
-        <span
-          key={tag.code}
-          className={`font-label-sm rounded-sm px-2.5 py-0.5 ${tipToneClass(tag.tone)}`}
-        >
-          {tag.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function WeatherWidget({
   timeLabel,
   locationLabel,
   onPickTime,
   onPickLocation,
   weather,
-  requiredWarmth,
 }: {
   timeLabel: string;
   locationLabel: string;
@@ -165,8 +120,6 @@ export function WeatherWidget({
     precipProbability?: number;
     uvIndex?: number;
   };
-  /** 穿衣指数（0–100，内部 requiredWarmth），展示在气象指标下方 */
-  requiredWarmth?: number | null;
 }) {
   const uv = weather.uvIndex ?? 0;
   // 仅在极端条件下展示摘要；常规提醒由下方气象指标和标签承载。
@@ -178,22 +131,6 @@ export function WeatherWidget({
     /暴雨|暴雪|雷雨|雷暴|冰雹|冻雨|台风/.test(weather.text) ? weather.text : null,
   ].filter(Boolean);
   const summary = summaryParts.length > 0 ? summaryParts.join("，") + "。" : null;
-  const adviceValue =
-    requiredWarmth != null && Number.isFinite(requiredWarmth)
-      ? Math.round(requiredWarmth)
-      : null;
-
-  const tipTags = resolveAdviceTipTags({
-    temp: weather.temp,
-    feelsLike: weather.feelsLike,
-    humidity: weather.humidity,
-    windSpeed: weather.windSpeed,
-    pressure: 1013,
-    text: weather.text,
-    precipProbability: weather.precipProbability,
-    uvIndex: weather.uvIndex,
-  });
-
   return (
     <section
       className="weather-hero glass-weather relative overflow-hidden rounded-2xl p-card-padding"
@@ -240,29 +177,6 @@ export function WeatherWidget({
           value={`${Math.round(weather.feelsLike)}°C`}
         />
       </div>
-
-      {(adviceValue != null || tipTags.length > 0) && (
-        <div className="weather-footer">
-          {adviceValue != null && (
-            <section className="weather-index-panel" aria-label={`穿衣指数 ${adviceValue}`}>
-              <span className="weather-index-icon" aria-hidden="true">
-                <WeatherIndexIcon />
-              </span>
-              <div className="weather-index-content">
-                <div className="weather-index-heading">
-                  <h3>穿衣指数</h3>
-                  <span className="weather-index-value">{adviceValue}</span>
-                </div>
-                <div className="weather-index-description">
-                  <p>结合气温、体感、湿度和风速，数值越高，穿得越暖</p>
-                  <WeatherTipChips tags={tipTags} />
-                </div>
-              </div>
-            </section>
-          )}
-          {adviceValue == null ? <WeatherTipChips tags={tipTags} /> : null}
-        </div>
-      )}
 
     </section>
   );

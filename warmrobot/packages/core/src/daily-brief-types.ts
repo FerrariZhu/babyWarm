@@ -159,7 +159,7 @@ export interface DressingAdvice {
   bottomSuggestion?: AdviceItem;
   outfitItems: AdviceItem[];
   extras: AdviceExtra[];
-  /** Weather-threshold tip chips — shown in 天气模块, not in 穿搭建议. */
+  /** Weather-threshold tip chips — shown once in the merged outfit advice. */
   tags: AdviceTipTag[];
   reason?: string;
   requiredWarmth: number;

@@ -26,13 +26,15 @@ import {
   checklistDisplayChips,
   formatAdviceConclusion,
   formatAdviceConclusionBlocks,
+  formatDressingMethod,
+  formatOutfitAdviceRows,
   resolveCategoryIcon,
   shouldShowDiaperPrompt,
   type ChecklistDisplayChip,
   type DiaperPromptState,
 } from "@warmrobot/core/client";
 import { AddBabyChecklistPrompt } from "./add-baby-checklist-prompt";
-import { AdviceConclusionPanel, AdviceTips } from "./advice-conclusion-panel";
+import { AdviceConclusionPanel } from "./advice-conclusion-panel";
 import { CategoryStyleSheet } from "./category-style-sheet";
 import { pencilGarmentIcon } from "@/lib/pencil-icons";
 import { MaterialIcon } from "./material-icon";
@@ -380,6 +382,23 @@ export function DailyAdviceSection({
       wearsDiaper,
     ]
   );
+  const dressingMethod = useMemo(
+    () => formatDressingMethod(source.requiredWarmth),
+    [source.requiredWarmth]
+  );
+  const outfitAdviceRows = useMemo(
+    () => formatOutfitAdviceRows(source.requiredWarmth, outfitItems),
+    [source.requiredWarmth, outfitItems]
+  );
+  const methodIconItem =
+    outfitItems.find((item) => item.outfitSlot === "outer") ??
+    outfitItems.find((item) => item.outfitSlot === "mid_top") ??
+    outfitItems.find((item) => item.outfitSlot === "base_top");
+  const methodIcon = methodIconItem
+    ? resolveCategoryIcon(methodIconItem, categoryIcons)
+    : null;
+  const methodIconSrc = methodIcon?.iconUrl ??
+    (methodIcon ? pencilGarmentIcon(methodIcon.iconKey) : undefined);
 
   function handleDiaperPromptAnswered(nextWearsDiaper: boolean) {
     setWearsDiaper(nextWearsDiaper);
@@ -404,22 +423,28 @@ export function DailyAdviceSection({
         className="advice-surface"
         aria-label="穿搭建议"
       >
-        <h2 className="advice-heading font-headline-md text-on-surface">
-          <MaterialIcon name="chat_bubble" filled />
-          {COPY.adviceTitle}
-        </h2>
+        <header className="advice-header">
+          <h2 className="advice-heading font-headline-md text-on-surface">
+            <MaterialIcon name="chat_bubble" filled />
+            {COPY.adviceTitle}
+          </h2>
+          <span className="advice-index" aria-label={`穿衣指数 ${Math.round(source.requiredWarmth)}`}>
+            <span>穿衣指数</span>
+            <strong>{Math.round(source.requiredWarmth)}</strong>
+          </span>
+        </header>
         {conclusionBlocks.length > 0 && (
           <AdviceConclusionPanel
             blocks={conclusionBlocks}
+            method={dressingMethod}
+            methodIconSrc={methodIconSrc}
+            outfitRows={outfitAdviceRows}
+            tipTags={source.tags ?? []}
             showDiaperPrompt={showDiaperPrompt}
             diaperPromptBabyId={diaperContext?.babyId}
             onDiaperPromptAnswered={handleDiaperPromptAnswered}
           />
         )}
-      </div>
-
-      <div data-analytics-module="advice_tips">
-        <AdviceTips blocks={conclusionBlocks} />
       </div>
 
       <div data-analytics-module="outfit_checklist" className="outfit-checklist flex flex-col gap-stack-gap" aria-label="穿搭清单">
