@@ -203,3 +203,17 @@ test("outfit rows translate exact garment attributes into conversational copy", 
   assert.ok(rows.every((row) => !row.text.includes("厚实的")));
   assert.ok(rows.every((row) => !row.text.includes("→")));
 });
+
+test("zone labels do not repeat inside a single-layer sentence", () => {
+  const rows = formatOutfitAdviceRows(8, [
+    {
+      ...categoryItem("top", "包屁衣", "bodysuit_short", "base_top"),
+      material: "cotton",
+      thickness: "thin",
+    },
+  ]);
+
+  assert.deepEqual(rows, [
+    { zone: "上身", text: "穿一件轻薄纯棉包屁衣。" },
+  ]);
+});
