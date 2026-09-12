@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type {
   AdviceConclusionBlock,
   AdviceTipTag,
@@ -14,6 +15,33 @@ function tipLines(blocks: AdviceConclusionBlock[]): string[] {
     .filter((block) => block.kind === "uv" || block.kind === "rain" || block.kind === "accessory")
     .map((block) => block.lines[0] ?? block.text)
     .filter(Boolean);
+}
+
+function emphasizeGarments(text: string, terms: string[]) {
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let key = 0;
+
+  while (cursor < text.length) {
+    const next = terms
+      .map((term) => ({ term, index: text.indexOf(term, cursor) }))
+      .filter(({ index }) => index >= 0)
+      .sort((a, b) => a.index - b.index || b.term.length - a.term.length)[0];
+
+    if (!next) {
+      parts.push(text.slice(cursor));
+      break;
+    }
+    if (next.index > cursor) parts.push(text.slice(cursor, next.index));
+    parts.push(
+      <strong className="advice-garment" key={`${next.term}-${key++}`}>
+        {next.term}
+      </strong>
+    );
+    cursor = next.index + next.term.length;
+  }
+
+  return parts;
 }
 
 /** Narrative part of the dressing recommendation: weather summary → diaper guidance → what to wear. */
@@ -85,7 +113,7 @@ export function AdviceConclusionPanel({
               {outfitRows.map((row) => (
                 <div className="advice-outfit-row" key={row.zone}>
                   <span>{row.zone}</span>
-                  <p>{row.text}</p>
+                  <p>{emphasizeGarments(row.text, row.emphasisTerms)}</p>
                 </div>
               ))}
             </div>

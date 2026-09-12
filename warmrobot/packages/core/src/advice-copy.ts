@@ -76,6 +76,8 @@ export type OutfitAdviceZone = "上身" | "下身" | "脚上" | "配件";
 export interface OutfitAdviceRow {
   zone: OutfitAdviceZone;
   text: string;
+  /** Exact caregiver-facing category names to emphasize within `text`. */
+  emphasisTerms: string[];
 }
 
 /** Friendlier outer names for caregiver copy (checklist label still drives specifics). */
@@ -331,8 +333,64 @@ export function conversationalGarmentPhrase(item: AdviceItem): string {
   return `${fitLead(item)}${thickness}${materialWord(item)}${label}`;
 }
 
+const CATEGORY_EMPHASIS_CANDIDATES: Partial<Record<ClothingCategory, string[]>> = {
+  bodysuit_short: ["包屁衣"],
+  bodysuit_long: ["包屁衣"],
+  tshirt_short: ["T 恤", "T恤"],
+  tshirt_long: ["T 恤", "T恤"],
+  thermal_top: ["秋衣"],
+  sweater: ["毛衣", "针织"],
+  fleece_top: ["抓绒", "卫衣"],
+  vest: ["马甲", "背心"],
+  vest_down: ["羽绒马甲"],
+  outer_uv: ["防晒衣"],
+  outer_shell: ["春秋外套", "外套"],
+  outer_cotton: ["棉衣", "厚棉服"],
+  outer_down: ["羽绒服"],
+  long_johns: ["秋裤"],
+  pants_short: ["短裤"],
+  pants_mid: ["中裤"],
+  pants_long: ["长裤"],
+  shoes_sandal: ["凉鞋"],
+  shoes_sneaker: ["运动鞋"],
+  shoes_leather: ["皮鞋"],
+  shoes_boot: ["高帮靴"],
+  scarf: ["围巾"],
+  gloves: ["手套"],
+};
+
+/** Keep emphasis on the category noun, not its material, thickness, or fit. */
+function garmentEmphasisTerm(item: AdviceItem): string {
+  const phrase = conversationalGarmentPhrase(item);
+
+  if (item.category === "socks") {
+    const height = item.sockHeight === "over_calf"
+      ? "长筒"
+      : item.sockHeight === "mid_calf"
+        ? "中筒"
+        : item.sockHeight === "no_show"
+          ? "船"
+          : item.sockHeight === "ankle"
+            ? "短筒"
+            : "";
+    return `${height}袜`;
+  }
+
+  if (item.category === "hat") return spokenLabel(item.label);
+
+  const candidates = item.category
+    ? CATEGORY_EMPHASIS_CANDIDATES[item.category] ?? []
+    : [];
+  return candidates.find((candidate) => phrase.includes(candidate))
+    ?? spokenLabel(item.label);
+}
+
 function firstItem(items: AdviceItem[], slot: string): AdviceItem | undefined {
   return items.find((item) => item.kind === "category" && item.outfitSlot === slot);
+}
+
+function presentItems(items: Array<AdviceItem | undefined>): AdviceItem[] {
+  return items.filter((item): item is AdviceItem => item != null);
 }
 
 /** Ordered, conversational outfit instructions: inside-out and top-down. */
@@ -357,7 +415,13 @@ export function formatOutfitAdviceRows(
   }
   if (mid) topParts.push(`外面套一件${conversationalGarmentPhrase(mid)}`);
   if (outer) topParts.push(`最外层再穿${conversationalGarmentPhrase(outer)}`);
-  if (topParts.length > 0) rows.push({ zone: "上身", text: `${topParts.join("，")}。` });
+  if (topParts.length > 0) {
+    rows.push({
+      zone: "上身",
+      text: `${topParts.join("，")}。`,
+      emphasisTerms: presentItems([base, mid, outer]).map(garmentEmphasisTerm),
+    });
+  }
 
   const bottomParts: string[] = [];
   if (baseBottom) bottomParts.push(`里面穿一条${conversationalGarmentPhrase(baseBottom)}`);
@@ -369,12 +433,25 @@ export function formatOutfitAdviceRows(
   if (bottomParts.length === 0 && requiredWarmth >= 70) {
     bottomParts.push("补穿一条保暖长裤");
   }
-  if (bottomParts.length > 0) rows.push({ zone: "下身", text: `${bottomParts.join("，")}。` });
+  if (bottomParts.length > 0) {
+    rows.push({
+      zone: "下身",
+      text: `${bottomParts.join("，")}。`,
+      emphasisTerms: presentItems([baseBottom, bottom]).map(garmentEmphasisTerm),
+    });
+    if (!baseBottom && !bottom) rows.at(-1)?.emphasisTerms.push("长裤");
+  }
 
   const feetParts: string[] = [];
   if (socks) feetParts.push(`穿一双${conversationalGarmentPhrase(socks)}`);
   if (shoes) feetParts.push(`${socks ? "搭配" : "穿上"}${conversationalGarmentPhrase(shoes)}`);
-  if (feetParts.length > 0) rows.push({ zone: "脚上", text: `${feetParts.join("，")}。` });
+  if (feetParts.length > 0) {
+    rows.push({
+      zone: "脚上",
+      text: `${feetParts.join("，")}。`,
+      emphasisTerms: presentItems([socks, shoes]).map(garmentEmphasisTerm),
+    });
+  }
 
   const hat = firstItem(outfitItems, "hat");
   const scarf = firstItem(outfitItems, "scarf");
@@ -383,7 +460,13 @@ export function formatOutfitAdviceRows(
   if (hat) accessoryParts.push(`戴好${conversationalGarmentPhrase(hat)}`);
   if (scarf) accessoryParts.push(`围上${conversationalGarmentPhrase(scarf)}`);
   if (gloves) accessoryParts.push(`${accessoryParts.length > 0 ? "再" : ""}戴${conversationalGarmentPhrase(gloves)}`);
-  if (accessoryParts.length > 0) rows.push({ zone: "配件", text: `${accessoryParts.join("，")}。` });
+  if (accessoryParts.length > 0) {
+    rows.push({
+      zone: "配件",
+      text: `${accessoryParts.join("，")}。`,
+      emphasisTerms: presentItems([hat, scarf, gloves]).map(garmentEmphasisTerm),
+    });
+  }
 
   return rows;
 }
