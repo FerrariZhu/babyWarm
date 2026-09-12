@@ -14,6 +14,7 @@ const weatherPath = new URL(
   "../web/src/components/stitch/weather-widget.tsx",
   import.meta.url
 );
+const stylesPath = new URL("../web/src/app/globals.css", import.meta.url);
 
 test("the advice card owns the clothing index, method, ordered rows, and weather chips", async () => {
   const [advice, panel, weather] = await Promise.all([
@@ -33,4 +34,17 @@ test("the advice card owns the clothing index, method, ordered rows, and weather
   assert.match(panel, /advice-tip-chips/);
   assert.doesNotMatch(weather, /weather-index-panel/);
   assert.doesNotMatch(weather, /WeatherTipChips/);
+});
+
+test("the dressing method keeps the advice paper visible through an outlined module", async () => {
+  const styles = await readFile(stylesPath, "utf8");
+  const method = styles.match(/\.advice-method\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+  const visual = styles.match(/\.advice-method-visual\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+  const steps = styles.match(/\.advice-method-steps span\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+
+  assert.match(method, /background:\s*transparent/);
+  assert.match(method, /border:\s*1px solid/);
+  assert.match(visual, /background:\s*transparent/);
+  assert.match(visual, /box-shadow:\s*none/);
+  assert.match(steps, /background:\s*transparent/);
 });
