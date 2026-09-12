@@ -21,8 +21,6 @@
     "@chinese-fonts/xiaolai": "^3.0.0",
     "@fontsource-variable/material-symbols-outlined": "^5.3.3",
     "@free-fonts/lxgw-975-yuan": "^1.0.0",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.8",
     "@warmrobot/core": "*",
     "next": "^15.3.3",
     "pg": "^8.21.0",

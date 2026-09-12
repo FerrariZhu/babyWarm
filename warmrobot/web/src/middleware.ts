@@ -1,8 +1,15 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const adminOrigin = process.env.NEXT_PUBLIC_ADMIN_URL ?? "http://localhost:3001";
+    const rest = request.nextUrl.pathname.slice("/admin".length) || "/categories";
+    return NextResponse.redirect(new URL(`${rest}${request.nextUrl.search}`, adminOrigin));
+  }
+
+  // Edge middleware cannot open PostgreSQL connections. Server pages and API
+  // handlers perform the authoritative application-session lookup.
+  return NextResponse.next({ request });
 }
 
 export const config = {

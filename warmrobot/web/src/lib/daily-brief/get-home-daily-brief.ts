@@ -21,7 +21,7 @@ import {
   type WeatherResult,
 } from "@warmrobot/core";
 import type { DbBaby, DbProfile } from "@/lib/db/types";
-import { requireUser } from "@/lib/supabase/session";
+import { requireUser } from "@/lib/self-hosted/session";
 import { query, queryOne } from "@/lib/self-hosted/database";
 import { getWeatherForProfile } from "@/lib/weather";
 import { hasValidCoordinates } from "@/lib/geo";

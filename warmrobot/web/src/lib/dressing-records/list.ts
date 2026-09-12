@@ -3,7 +3,7 @@ import {
   type DressingRecord,
   type DressingRecordRow,
 } from "@warmrobot/core";
-import { requireUser } from "@/lib/supabase/session";
+import { requireUser } from "@/lib/self-hosted/session";
 import { query } from "@/lib/self-hosted/database";
 
 const RECORD_SELECT =

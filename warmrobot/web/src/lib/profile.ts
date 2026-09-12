@@ -1,6 +1,6 @@
 import type { DbBaby, DbProfile } from "@/lib/db/types";
 import type { WarmthPreference } from "@/lib/baby-profile";
-import { requireUser } from "@/lib/supabase/session";
+import { requireUser } from "@/lib/self-hosted/session";
 import { query, queryOne } from "@/lib/self-hosted/database";
 
 type ProfileBabyRow = Omit<DbBaby, "birth_date"> & {
