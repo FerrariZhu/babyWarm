@@ -11,6 +11,8 @@ const execFileAsync = promisify(execFile);
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 let compiledCoreDir;
 let formatAdviceConclusionBlocks;
+let formatDressingMethod;
+let formatOutfitAdviceRows;
 let isBriefAdviceCurrent;
 
 before(async () => {
@@ -34,9 +36,11 @@ before(async () => {
     { cwd: projectRoot }
   );
 
-  ({ formatAdviceConclusionBlocks } = await import(
-    join(compiledCoreDir, "advice-copy.js")
-  ));
+  ({
+    formatAdviceConclusionBlocks,
+    formatDressingMethod,
+    formatOutfitAdviceRows,
+  } = await import(join(compiledCoreDir, "advice-copy.js")));
   ({ isBriefAdviceCurrent } = await import(
     join(compiledCoreDir, "daily-brief-types.js")
   ));
@@ -108,4 +112,94 @@ test("cached briefs from before the lower-body copy fix are regenerated", () => 
     }),
     false
   );
+});
+
+test("freezing weather uses the reinforced onion strategy", () => {
+  assert.deepEqual(formatDressingMethod(100), {
+    title: "加强型洋葱穿衣法",
+    steps: ["内层保暖", "中层锁温", "外层挡风雪"],
+    note: "进屋后再逐层脱下",
+  });
+});
+
+test("outfit rows translate exact garment attributes into conversational copy", () => {
+  const rows = formatOutfitAdviceRows(100, [
+    {
+      ...categoryItem("top", "秋衣", "thermal_top", "base_top"),
+      material: "cotton",
+      thickness: "thick",
+      fitType: "regular",
+    },
+    {
+      ...categoryItem("mid", "毛衣", "sweater", "mid_top"),
+      material: "cotton",
+      thickness: "thick",
+      fitType: "loose",
+    },
+    {
+      ...categoryItem("outer", "羽绒服", "outer_down", "outer"),
+      material: "down",
+      thickness: "extreme_cold",
+      fitType: "loose",
+    },
+    {
+      ...categoryItem("base-bottom", "秋裤", "long_johns", "base_bottom"),
+      material: "cotton",
+      thickness: "thick",
+      fitType: "regular",
+    },
+    {
+      ...categoryItem("bottom", "长裤", "pants_long", "bottom"),
+      material: "cotton",
+      thickness: "thick",
+      fitType: "loose",
+      pantLength: "full_length",
+    },
+    {
+      ...categoryItem("socks", "袜子", "socks", "socks"),
+      material: "cotton",
+      thickness: "thick",
+      sockHeight: "mid_calf",
+    },
+    {
+      ...categoryItem("boots", "高帮靴", "shoes_boot", "shoes"),
+      thickness: "fleece_lined",
+    },
+    {
+      ...categoryItem("hat", "保暖帽", "hat", "hat"),
+      hatKind: "warm",
+    },
+    {
+      ...categoryItem("scarf", "围巾", "scarf", "scarf"),
+      material: "cotton",
+      thickness: "thick",
+    },
+    {
+      ...categoryItem("gloves", "手套", "gloves", "gloves"),
+      material: "cotton",
+      thickness: "thick",
+    },
+  ]);
+
+  assert.deepEqual(rows, [
+    {
+      zone: "上身",
+      text: "最里面穿加厚纯棉秋衣，外面套一件宽松的厚款纯棉毛衣，最外层再穿蓬松保暖的羽绒服。",
+    },
+    {
+      zone: "下身",
+      text: "里面穿一条加厚纯棉秋裤，外面再加宽松的厚款纯棉长裤。",
+    },
+    {
+      zone: "脚上",
+      text: "穿一双保暖的纯棉中筒袜，搭配加绒高帮靴。",
+    },
+    {
+      zone: "配件",
+      text: "戴好保暖帽，围上厚棉围巾，再戴纯棉保暖手套。",
+    },
+  ]);
+  assert.ok(rows.every((row) => !row.text.includes("标准版")));
+  assert.ok(rows.every((row) => !row.text.includes("厚实的")));
+  assert.ok(rows.every((row) => !row.text.includes("→")));
 });
