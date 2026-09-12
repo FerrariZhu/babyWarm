@@ -25,9 +25,9 @@ services:
     env_file:
       - ${ENV_FILE:-.env.production}
     environment:
-      HOSTNAME: 127.0.0.1
+      HOSTNAME: 0.0.0.0
       GUIDE_ASSET_DIR: /var/lib/warmrobot/guide-assets
-    command: ["npm", "run", "start", "-w", "admin", "--", "-H", "127.0.0.1"]
+    command: ["npm", "run", "start", "-w", "admin", "--", "-H", "0.0.0.0"]
     network_mode: host
     restart: unless-stopped
     depends_on:
