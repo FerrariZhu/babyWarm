@@ -353,7 +353,7 @@ export function formatOutfitAdviceRows(
   if (base) {
     topParts.push(mid || outer
       ? `最里面穿${conversationalGarmentPhrase(base)}`
-      : `上身穿一件${conversationalGarmentPhrase(base)}`);
+      : `穿一件${conversationalGarmentPhrase(base)}`);
   }
   if (mid) topParts.push(`外面套一件${conversationalGarmentPhrase(mid)}`);
   if (outer) topParts.push(`最外层再穿${conversationalGarmentPhrase(outer)}`);
