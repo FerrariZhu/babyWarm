@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MaterialIcon } from "@/components/material-icon";
+import { safeAdminNextPath } from "@/lib/self-hosted/admin-auth-policy.mjs";
 
 function LoginForm() {
   const router = useRouter();
@@ -23,19 +23,20 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
 
     setLoading(false);
-    if (authError) {
-      setError(authError.message);
+    if (!response.ok) {
+      setError(result?.error ?? "登录暂时不可用");
       return;
     }
 
-    const next = searchParams.get("next") || "/admin";
+    const next = safeAdminNextPath(searchParams.get("next"));
     router.push(next);
     router.refresh();
   }

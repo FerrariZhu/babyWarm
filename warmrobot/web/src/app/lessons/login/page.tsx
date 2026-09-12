@@ -31,7 +31,7 @@ export default function LessonsLoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-margin-mobile">
-      <div className="w-full max-w-md rounded-[2rem] border border-surface-container-highest bg-surface-container-lowest p-8 cloud-shadow">
+      <div data-analytics-module="lessons_login_form" className="w-full max-w-md rounded-[2rem] border border-surface-container-highest bg-surface-container-lowest p-8 cloud-shadow">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
             <MaterialIcon name="calendar_month" className="text-[32px]" filled />
@@ -74,6 +74,7 @@ export default function LessonsLoginPage() {
           ) : null}
           <button
             type="submit"
+            data-analytics-action="submit_login"
             disabled={loading}
             className="font-label-caps min-h-touch-target-min w-full rounded-full bg-primary py-3 text-on-primary transition hover:opacity-90 disabled:opacity-60"
           >

@@ -22,4 +22,9 @@ export { garmentIcon } from "./garment-icons";
 export { categoryIconKey } from "./category-icons";
 export { CATEGORY_DISPLAY_LABELS } from "./daily-brief-types";
 export type { CategoryGuideContent, CategoryGuideEntry } from "./category-guides";
-export { mapCategoryGuideRow } from "./category-guides";
+export {
+  attachGuideVisualAssets,
+  CATEGORY_GUIDE_VISUAL_AXIS,
+  CATEGORY_GUIDE_VISUAL_VALUE,
+  mapCategoryGuideRow,
+} from "./category-guides";

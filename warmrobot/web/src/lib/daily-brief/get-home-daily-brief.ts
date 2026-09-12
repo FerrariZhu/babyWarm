@@ -1,5 +1,8 @@
 import {
   buildBriefAdvice,
+  attachGuideVisualAssets,
+  CATEGORY_GUIDE_VISUAL_AXIS,
+  CATEGORY_GUIDE_VISUAL_VALUE,
   groupVariantCopyByCategory,
   groupCategoryGuidesByCategory,
   isBriefAdviceCurrent,
@@ -14,10 +17,12 @@ import {
   type VariantSlimRow,
   type CategoryGuideContent,
   type CategoryGuideRow,
+  type GuideVisualAsset,
   type WeatherResult,
 } from "@warmrobot/core";
 import type { DbBaby, DbProfile } from "@/lib/db/types";
 import { requireUser } from "@/lib/supabase/session";
+import { query, queryOne } from "@/lib/self-hosted/database";
 import { getWeatherForProfile } from "@/lib/weather";
 import { hasValidCoordinates } from "@/lib/geo";
 import {
@@ -164,51 +169,29 @@ export async function getHomeDailyBriefPageData(options?: {
 }): Promise<HomeDailyBriefPageData | null> {
   const session = await requireUser();
   if (!session) return null;
-  const { supabase, user } = session;
+  const { user } = session;
   const force = options?.force ?? false;
   const hourOverride = resolveHourOverride(options?.at);
   const persistBrief = !hourOverride;
   const recommendedDate = localRecommendedDate();
 
-  const [{ data: profile }, { data: babies }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("display_name, city, latitude, longitude")
-      .eq("id", user.id)
-      .single<DbProfile>(),
-    supabase
-      .from("babies")
-      .select(
-        "id, name, birth_date, gender, activity_level, current_size_label, is_active, avatar_url, height_cm, weight_kg, wears_diaper, diaper_prompt_last_shown_at, diaper_prompt_last_answered_at, diaper_prompt_last_answer"
-      )
-      .eq("user_id", user.id)
-      .order("is_active", { ascending: false })
-      .order("created_at", { ascending: true }),
+  const [profile, babies] = await Promise.all([
+    queryOne<DbProfile>("SELECT display_name, city, latitude, longitude FROM public.profiles WHERE id = $1", [user.id]),
+    query<DbBaby>("SELECT id, name, birth_date, gender, activity_level, current_size_label, is_active, avatar_url, height_cm, weight_kg, wears_diaper, diaper_prompt_last_shown_at, diaper_prompt_last_answered_at, diaper_prompt_last_answer FROM public.babies WHERE user_id = $1 ORDER BY is_active DESC, created_at ASC", [user.id]),
   ]);
 
-  const baby = babies?.[0] as DbBaby | undefined;
+  const baby = babies[0] as DbBaby | undefined;
   // Load active garment variants + category outfit_slot for advice engine
-  const [
-    { data: variantRows },
-    { data: categoryRows },
-    { data: categoryGuideRows },
-  ] = await Promise.all([
-      supabase
-        .from("garment_variants")
-        .select(
-          "id, category_code, warmth_value, consumer_label, consumer_label_en, sort_order, is_active, material, thickness, fit_type, sock_height, bodysuit_style, pant_length, fill_type, hat_kind, pros, cons, usage_tips"
-        )
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }),
-      supabase.from("categories").select("code, outfit_slot, icon_key, icon_url").eq("is_active", true),
-      supabase
-        .from("category_guide_contents")
-        .select("category_code, intro, style_guides, material_guides"),
-    ]);
+  const [variantRows, categoryRows, categoryGuideRows, guideVisualRows] = await Promise.all([
+    query<VariantCopyRow & Omit<VariantSlimRow, "outfit_slot">>("SELECT id, category_code, warmth_value, consumer_label, consumer_label_en, sort_order, is_active, material, thickness, fit_type, sock_height, bodysuit_style, pant_length, fill_type, hat_kind, pros, cons, usage_tips FROM public.garment_variants WHERE is_active = true ORDER BY sort_order ASC"),
+    query<{ code: string; outfit_slot: string | null; icon_key: string | null; icon_url: string | null }>("SELECT code, outfit_slot, icon_key, icon_url FROM public.categories WHERE is_active = true"),
+    query<CategoryGuideRow>("SELECT category_code, intro, style_guides, material_guides FROM public.category_guide_contents"),
+    query<{ category_code: string; axis: string; value: string; storage_path: string; alt_text: string }>("SELECT category_code, axis, value, storage_path, alt_text FROM public.guide_visual_assets WHERE status = 'approved' ORDER BY created_at ASC"),
+  ]);
 
   const categoryIcons: Record<string, CategoryIconMeta> = {};
-  for (const row of categoryRows ?? []) {
-    const code = row.code as string;
+  for (const row of categoryRows) {
+    const code = row.code;
     categoryIcons[code] = {
       iconKey: (row.icon_key as string | null)?.trim() || "",
       iconUrl: (row.icon_url as string | null)?.trim() || null,
@@ -216,16 +199,28 @@ export async function getHomeDailyBriefPageData(options?: {
   }
 
   const variantCopyByCategory = groupVariantCopyByCategory(
-    ((variantRows ?? []) as VariantCopyRow[]).map((row) => mapVariantCopyRow(row))
+    variantRows.map((row) => mapVariantCopyRow(row))
   );
+  const guideVisualAssets: GuideVisualAsset[] = guideVisualRows.map((row) => ({
+    categoryCode: row.category_code,
+    guideKind:
+      row.axis === CATEGORY_GUIDE_VISUAL_AXIS && row.value === CATEGORY_GUIDE_VISUAL_VALUE
+        ? "category"
+        : "style",
+    ...(row.axis === CATEGORY_GUIDE_VISUAL_AXIS && row.value === CATEGORY_GUIDE_VISUAL_VALUE
+      ? {}
+      : { axis: row.axis as NonNullable<GuideVisualAsset["axis"]>, value: row.value }),
+    imageUrl: `/api/guide-assets/${row.storage_path.split("/").map(encodeURIComponent).join("/")}`,
+    imageAlt: row.alt_text,
+  }));
   const categoryGuideByCategory = groupCategoryGuidesByCategory(
-    ((categoryGuideRows ?? []) as CategoryGuideRow[]).map(mapCategoryGuideRow)
+    attachGuideVisualAssets(categoryGuideRows.map(mapCategoryGuideRow), guideVisualAssets)
   );
 
   const slotByCode = new Map(
-    (categoryRows ?? []).map((c) => [c.code as string, c.outfit_slot as string | null])
+    categoryRows.map((c) => [c.code, c.outfit_slot])
   );
-  const variants = ((variantRows ?? []) as Omit<VariantSlimRow, "outfit_slot">[]).map(
+  const variants = (variantRows as Array<Omit<VariantSlimRow, "outfit_slot">>).map(
     (v) => ({
       ...v,
       outfit_slot: slotByCode.get(v.category_code) ?? null,
@@ -270,27 +265,12 @@ export async function getHomeDailyBriefPageData(options?: {
     };
   }
 
-  const [{ data: pref }, { data: existing }, { data: savedRow }, weatherResult] =
-    await Promise.all([
-      supabase
-        .from("baby_warmth_preferences")
-        .select("warmth_offset")
-        .eq("baby_id", baby.id)
-        .maybeSingle(),
-      supabase
-        .from("home_daily_briefs")
-        .select("brief, generated_at")
-        .eq("baby_id", baby.id)
-        .eq("recommended_date", recommendedDate)
-        .maybeSingle(),
-      supabase
-        .from("dressing_records")
-        .select("id")
-        .eq("baby_id", baby.id)
-        .eq("recorded_date", recommendedDate)
-        .maybeSingle(),
-      getWeatherForProfile(profile, { at: hourOverride }),
-    ]);
+  const [pref, existing, savedRow, weatherResult] = await Promise.all([
+    queryOne<{ warmth_offset: number | string | null }>("SELECT warmth_offset FROM public.baby_warmth_preferences WHERE baby_id = $1", [baby.id]),
+    queryOne<{ brief: HomeDailyBrief; generated_at: string }>("SELECT brief, generated_at FROM public.home_daily_briefs WHERE baby_id = $1 AND recommended_date = $2", [baby.id, recommendedDate]),
+    queryOne<{ id: string }>("SELECT id FROM public.dressing_records WHERE baby_id = $1 AND recorded_date = $2", [baby.id, recommendedDate]),
+    getWeatherForProfile(profile, { at: hourOverride }),
+  ]);
   const savedToday = Boolean(savedRow);
 
   const warmthOffset = pref?.warmth_offset ? Number(pref.warmth_offset) : 0;
@@ -346,22 +326,15 @@ export async function getHomeDailyBriefPageData(options?: {
     variants,
   });
 
-  const { error } = persistBrief
-    ? await supabase.from("home_daily_briefs").upsert(
-        {
-          user_id: user.id,
-          baby_id: baby.id,
-          recommended_date: recommendedDate,
-          brief,
-          generated_at: brief.generatedAt,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "baby_id,recommended_date" }
-      )
-    : { error: null };
-
-  if (error) {
-    console.error("[getHomeDailyBrief] upsert failed:", error.message);
+  if (persistBrief) {
+    try {
+      await query(`INSERT INTO public.home_daily_briefs (user_id, baby_id, recommended_date, brief, generated_at, updated_at)
+        VALUES ($1, $2, $3, $4::jsonb, $5, now())
+        ON CONFLICT (baby_id, recommended_date) DO UPDATE SET brief = EXCLUDED.brief, generated_at = EXCLUDED.generated_at, updated_at = now()`,
+      [user.id, baby.id, recommendedDate, JSON.stringify(brief), brief.generatedAt]);
+    } catch (error) {
+      console.error("[getHomeDailyBrief] upsert failed:", error);
+    }
   }
 
   return {

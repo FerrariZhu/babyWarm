@@ -12,7 +12,7 @@ export function LessonListItem({
   onDelete: (id: string) => void;
 }) {
   return (
-    <li className="flex items-start justify-between gap-3 rounded-xl bg-surface-container-lowest p-4 cloud-shadow">
+    <li data-analytics-module="lesson_list" className="flex items-start justify-between gap-3 rounded-xl bg-surface-container-lowest p-4 cloud-shadow">
       <div className="min-w-0 flex-1">
         <p className="font-body-md font-medium text-on-surface">{lesson.title}</p>
         {lesson.goal ? (
@@ -28,6 +28,7 @@ export function LessonListItem({
         {lesson.canEdit ? (
           <button
             type="button"
+            data-analytics-action="edit_lesson"
             onClick={() => onEdit(lesson)}
             className="font-label-caps rounded-full border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm text-on-surface transition-colors hover:bg-surface-container-low active:scale-95"
           >
@@ -37,6 +38,7 @@ export function LessonListItem({
         {lesson.canDelete ? (
           <button
             type="button"
+            data-analytics-action="delete_lesson"
             onClick={() => onDelete(lesson.id)}
             className="font-label-caps rounded-full border border-secondary/30 bg-secondary-fixed px-4 py-2 text-sm text-on-secondary-fixed transition-colors hover:opacity-90 active:scale-95"
           >

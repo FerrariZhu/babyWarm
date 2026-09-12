@@ -151,14 +151,13 @@ export interface AdviceExtra {
  * Bump when checklist assembly / payload shape changes so cached home_daily_briefs
  * regenerate (e.g. garment_variants-driven labels, conclusion 大类 names, slot 换一换).
  */
-export const BRIEF_ADVICE_SCHEMA_VERSION = 27;
+export const BRIEF_ADVICE_SCHEMA_VERSION = 29;
 
-/** One dressing checklist (indoor / outdoor / extras). */
+/** One complete outfit for the current outdoor conditions, plus non-wearable reminders. */
 export interface DressingAdvice {
   /** Eligible default and fixed choices for completing an outfit after a top swap. */
   bottomSuggestion?: AdviceItem;
-  indoorItems: AdviceItem[];
-  outdoorAdditions: AdviceItem[];
+  outfitItems: AdviceItem[];
   extras: AdviceExtra[];
   /** Weather-threshold tip chips — shown in 天气模块, not in 穿搭建议. */
   tags: AdviceTipTag[];
@@ -216,6 +215,7 @@ export function isBriefAdviceCurrent(advice: unknown): advice is BriefAdvice {
   if (a.current == null || typeof a.current !== "object") return false;
   const current = a.current as Record<string, unknown>;
   if (!Array.isArray(current.tags)) return false;
+  if (!Array.isArray(current.outfitItems)) return false;
   const version =
     typeof a.schemaVersion === "number"
       ? a.schemaVersion

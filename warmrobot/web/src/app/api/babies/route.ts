@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
+import { queryOne } from "@/lib/self-hosted/database";
 import { isBabyGender, isWarmthPreference, isWearsDiaperChoice, wearsDiaperFromChoice } from "@/lib/baby-profile";
 import { suggestBabyCurrentSize } from "@/lib/suggest-size";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = await parseJsonBody<Record<string, unknown>>(request);
@@ -49,38 +47,47 @@ export async function POST(request: Request) {
 
   const suggestedSize = suggestBabyCurrentSize({ birthDate });
 
-  const { data: baby, error: babyError } = await supabase
-    .from("babies")
-    .insert({
-      user_id: user.id,
-      name,
-      birth_date: birthDate,
-      gender,
-      activity_level: "low",
-      is_active: true,
-      height_cm: heightCm,
-      weight_kg: weightKg,
-      avatar_url: body.avatar_url || null,
-      wears_diaper: wearsDiaper,
-      current_size_label: suggestedSize,
-      current_size_updated_at: suggestedSize ? new Date().toISOString() : null,
-    })
-    .select("id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper")
-    .single();
-
-  if (babyError) {
-    return NextResponse.json({ error: babyError.message }, { status: 500 });
+  try {
+    const baby = await queryOne<{
+      id: string;
+      name: string;
+      birth_date: string;
+      gender: string;
+      avatar_url: string | null;
+      height_cm: number | null;
+      weight_kg: number | null;
+      current_size_label: string | null;
+      wears_diaper: boolean | null;
+    }>(
+      `WITH created_baby AS (
+         INSERT INTO public.babies
+           (user_id, name, birth_date, gender, activity_level, is_active, height_cm, weight_kg,
+            avatar_url, wears_diaper, current_size_label, current_size_updated_at)
+         VALUES ($1, $2, $3, $4, 'low', true, $5, $6, $7, $8, $9, CASE WHEN $9 IS NULL THEN NULL ELSE now() END)
+         RETURNING id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper
+       ), created_preference AS (
+         INSERT INTO public.baby_warmth_preferences (baby_id, warmth_preference)
+         SELECT id, $10 FROM created_baby
+       )
+       SELECT id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper
+       FROM created_baby`,
+      [
+        user.id,
+        name,
+        birthDate,
+        gender,
+        heightCm,
+        weightKg,
+        typeof body.avatar_url === "string" ? body.avatar_url : null,
+        wearsDiaper,
+        suggestedSize,
+        warmthPreference,
+      ]
+    );
+    if (!baby) throw new Error("创建宝宝档案未返回记录");
+    return NextResponse.json({ ...baby, warmth_preference: warmthPreference });
+  } catch (error) {
+    console.error("[babies/create]", error);
+    return NextResponse.json({ error: "创建宝宝档案失败" }, { status: 500 });
   }
-
-  const { error: prefError } = await supabase.from("baby_warmth_preferences").insert({
-    baby_id: baby.id,
-    warmth_preference: warmthPreference,
-  });
-
-  if (prefError) {
-    await supabase.from("babies").delete().eq("id", baby.id);
-    return NextResponse.json({ error: prefError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ...baby, warmth_preference: warmthPreference });
 }

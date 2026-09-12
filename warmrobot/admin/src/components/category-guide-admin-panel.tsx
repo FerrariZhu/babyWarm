@@ -1,14 +1,100 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import type { CategoryGuideContent, CategoryGuideEntry } from "@warmrobot/core/admin";
-import { saveAdminCategoryGuide } from "@/app/admin/variants/category-guide-actions";
+import {
+  CATEGORY_GUIDE_VISUAL_AXIS,
+  CATEGORY_GUIDE_VISUAL_VALUE,
+  type CategoryGuideContent,
+  type CategoryGuideEntry,
+} from "@warmrobot/core/admin";
+import {
+  saveAdminCategoryGuide,
+  uploadGuideVisualAsset,
+  type GuideVisualAsset,
+} from "@/app/admin/variants/category-guide-actions";
 
 type Props = {
   categoryCode: string;
   categoryName: string;
   initialGuide?: CategoryGuideContent;
+  initialVisualAssets: GuideVisualAsset[];
 };
+
+function CategoryVisualEditor({
+  categoryCode,
+  categoryName,
+  visualAsset,
+}: {
+  categoryCode: string;
+  categoryName: string;
+  visualAsset?: GuideVisualAsset;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [altText, setAltText] = useState(visualAsset?.altText ?? `${categoryName}示意图`);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState(visualAsset?.status === "approved");
+  const [uploading, startUpload] = useTransition();
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary-container/15 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-label-md text-on-surface">品类代表图</p>
+          <p className="font-body-sm mt-0.5 text-text-soft">
+            展示在 C 端衣物指南顶部；PNG、JPEG 或 WebP，最大 2MB。
+          </p>
+        </div>
+        {uploaded ? <span className="font-label-sm text-primary">已发布</span> : null}
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={(event) => {
+            setFile(event.target.files?.[0] ?? null);
+            setUploadError(null);
+          }}
+          className="font-body-sm min-w-0 text-text-soft"
+        />
+        <input
+          value={altText}
+          maxLength={180}
+          onChange={(event) => setAltText(event.target.value)}
+          aria-label={`${categoryName}品类图片替代文本`}
+          className="min-w-0 rounded-lg border border-outline-variant bg-surface px-3 py-2 font-body-sm"
+        />
+        <button
+          type="button"
+          disabled={!file || uploading}
+          onClick={() => {
+            if (!file) return;
+            setUploadError(null);
+            startUpload(async () => {
+              const result = await uploadGuideVisualAsset({
+                categoryCode,
+                axis: CATEGORY_GUIDE_VISUAL_AXIS,
+                value: CATEGORY_GUIDE_VISUAL_VALUE,
+                altText,
+                status: "approved",
+                file,
+              });
+              if (!result.ok) {
+                setUploadError(result.error);
+                return;
+              }
+              setUploaded(true);
+              setFile(null);
+            });
+          }}
+          className="font-label-md rounded-lg border border-primary px-3 py-2 text-primary disabled:opacity-50"
+        >
+          {uploading ? "上传中…" : "上传并发布"}
+        </button>
+      </div>
+      {uploadError ? <p role="alert" className="font-body-sm mt-2 text-error">{uploadError}</p> : null}
+    </div>
+  );
+}
 
 function updateEntryText(
   entries: CategoryGuideEntry[],
@@ -27,14 +113,80 @@ function updateEntryText(
 
 function EntryEditor({
   entry,
+  categoryCode,
+  visualAsset,
+  allowsVisualAsset,
   onChange,
 }: {
   entry: CategoryGuideEntry;
+  categoryCode: string;
+  visualAsset?: GuideVisualAsset;
+  allowsVisualAsset: boolean;
   onChange: (key: "pros" | "cautions", line: number, value: string) => void;
 }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [altText, setAltText] = useState(visualAsset?.altText ?? `${entry.label}示意图`);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState(visualAsset?.status === "approved");
+  const [uploading, startUpload] = useTransition();
   return (
     <article className="rounded-xl border border-outline-variant/45 bg-surface p-3">
       <h4 className="font-label-lg text-on-surface">{entry.label}</h4>
+      {allowsVisualAsset ? <div className="mt-3 rounded-lg bg-surface-container-low px-3 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-label-md text-on-surface">款式示意图</p>
+            <p className="font-body-sm mt-0.5 text-text-soft">PNG、JPEG 或 WebP，最大 2MB；上传即发布到 C 端。</p>
+          </div>
+          {uploaded ? <span className="font-label-sm text-primary">已发布</span> : null}
+        </div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => {
+              setFile(event.target.files?.[0] ?? null);
+              setUploadError(null);
+            }}
+            className="font-body-sm min-w-0 text-text-soft"
+          />
+          <input
+            value={altText}
+            maxLength={180}
+            onChange={(event) => setAltText(event.target.value)}
+            aria-label={`${entry.label}图片替代文本`}
+            className="min-w-0 rounded-lg border border-outline-variant bg-surface px-3 py-2 font-body-sm"
+          />
+          <button
+            type="button"
+            disabled={!file || uploading}
+            onClick={() => {
+              if (!file) return;
+              setUploadError(null);
+              startUpload(async () => {
+                const result = await uploadGuideVisualAsset({
+                  categoryCode,
+                  axis: entry.axis,
+                  value: entry.value,
+                  altText,
+                  status: "approved",
+                  file,
+                });
+                if (!result.ok) {
+                  setUploadError(result.error);
+                  return;
+                }
+                setUploaded(true);
+                setFile(null);
+              });
+            }}
+            className="font-label-md rounded-lg border border-primary px-3 py-2 text-primary disabled:opacity-50"
+          >
+            {uploading ? "上传中…" : "上传并发布"}
+          </button>
+        </div>
+        {uploadError ? <p role="alert" className="font-body-sm mt-2 text-error">{uploadError}</p> : null}
+      </div> : null}
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         {([
           ["pros", "勾选内容"],
@@ -62,10 +214,16 @@ function EntryEditor({
 function GuideGroup({
   title,
   entries,
+  categoryCode,
+  visualAssets,
+  allowsVisualAssets,
   onChange,
 }: {
   title: string;
   entries: CategoryGuideEntry[];
+  categoryCode: string;
+  visualAssets: GuideVisualAsset[];
+  allowsVisualAssets: boolean;
   onChange: (index: number, key: "pros" | "cautions", line: number, value: string) => void;
 }) {
   if (entries.length === 0) return null;
@@ -76,6 +234,9 @@ function GuideGroup({
         <EntryEditor
           key={`${entry.axis}:${entry.value}`}
           entry={entry}
+          categoryCode={categoryCode}
+          visualAsset={visualAssets.find((asset) => asset.axis === entry.axis && asset.value === entry.value)}
+          allowsVisualAsset={allowsVisualAssets}
           onChange={(key, line, value) => onChange(index, key, line, value)}
         />
       ))}
@@ -83,7 +244,7 @@ function GuideGroup({
   );
 }
 
-export function CategoryGuideAdminPanel({ categoryCode, categoryName, initialGuide }: Props) {
+export function CategoryGuideAdminPanel({ categoryCode, categoryName, initialGuide, initialVisualAssets }: Props) {
   const [guide, setGuide] = useState<CategoryGuideContent | null>(initialGuide ?? null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -142,8 +303,19 @@ export function CategoryGuideAdminPanel({ categoryCode, categoryName, initialGui
         />
       </label>
 
-      <GuideGroup title="款式指南" entries={guide.styles} onChange={(...args) => updateGroup("styles", ...args)} />
-      <GuideGroup title="面料指南" entries={guide.materials} onChange={(...args) => updateGroup("materials", ...args)} />
+      <CategoryVisualEditor
+        key={categoryCode}
+        categoryCode={categoryCode}
+        categoryName={categoryName}
+        visualAsset={initialVisualAssets.find(
+          (asset) =>
+            asset.axis === CATEGORY_GUIDE_VISUAL_AXIS &&
+            asset.value === CATEGORY_GUIDE_VISUAL_VALUE
+        )}
+      />
+
+      <GuideGroup title="款式指南" entries={guide.styles} categoryCode={categoryCode} visualAssets={initialVisualAssets} allowsVisualAssets onChange={(...args) => updateGroup("styles", ...args)} />
+      <GuideGroup title="面料指南" entries={guide.materials} categoryCode={categoryCode} visualAssets={[]} allowsVisualAssets={false} onChange={(...args) => updateGroup("materials", ...args)} />
 
       {error ? <p role="alert" className="font-body-md text-error">{error}</p> : null}
       <div className="flex items-center gap-3">

@@ -6,6 +6,12 @@ import { MaterialIcon } from "@/components/material-icon";
 
 const NAV_ITEMS = [
   {
+    href: "/admin",
+    label: "数据总览",
+    icon: "monitoring",
+    description: "页面与模块访问趋势",
+  },
+  {
     href: "/admin/variants",
     label: "品类与细类型",
     icon: "view_list",

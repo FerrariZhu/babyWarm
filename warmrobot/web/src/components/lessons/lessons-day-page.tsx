@@ -106,7 +106,7 @@ export function LessonsDayPage({ dayIndex }: { dayIndex: number }) {
 
   if (!accessToken) {
     return (
-      <main className="mt-6 flex w-full max-w-[1200px] flex-col gap-6 px-margin-mobile md:px-margin-desktop">
+      <main data-analytics-module="lessons_auth_required" className="mt-6 flex w-full max-w-[1200px] flex-col gap-6 px-margin-mobile md:px-margin-desktop">
         <section className="rounded-xl bg-surface-container-lowest p-8 text-center cloud-shadow">
           <MaterialIcon name="lock" className="mb-3 text-[48px] text-primary/40" />
           <p className="font-body-md text-on-surface-variant">
@@ -128,7 +128,7 @@ export function LessonsDayPage({ dayIndex }: { dayIndex: number }) {
   }
 
   return (
-    <main className="mt-6 flex w-full max-w-[1200px] flex-col gap-6 px-margin-mobile md:px-margin-desktop">
+    <main data-analytics-module="lessons_schedule" className="mt-6 flex w-full max-w-[1200px] flex-col gap-6 px-margin-mobile md:px-margin-desktop">
       <header>
         <h1 className="font-headline-md-mobile text-on-background">
           {DAY_LABELS[dayIndex] ?? dayIndex}
@@ -146,6 +146,7 @@ export function LessonsDayPage({ dayIndex }: { dayIndex: number }) {
       {canAdd && !showForm ? (
         <button
           type="button"
+          data-analytics-action="open_create_lesson"
           onClick={() => {
             setEditing(null);
             setTitle('');
@@ -162,6 +163,7 @@ export function LessonsDayPage({ dayIndex }: { dayIndex: number }) {
       {showForm && canAdd ? (
         <form
           onSubmit={editing ? handleUpdate : handleCreate}
+          data-analytics-module="lesson_editor"
           className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-6 cloud-shadow"
         >
           <h2 className="font-headline-md-mobile text-on-surface">
@@ -196,12 +198,14 @@ export function LessonsDayPage({ dayIndex }: { dayIndex: number }) {
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
+              data-analytics-action="save_lesson"
               className="font-label-caps min-h-touch-target-min rounded-full bg-primary px-6 py-3 text-on-primary transition hover:opacity-90 active:scale-95"
             >
               {editing ? 'Зберегти' : 'Створити'}
             </button>
             <button
               type="button"
+              data-analytics-action="cancel_edit"
               className="font-label-caps min-h-touch-target-min rounded-full border border-outline-variant bg-surface-container-lowest px-6 py-3 text-on-surface transition hover:bg-surface-container-low active:scale-95"
               onClick={() => {
                 setShowForm(false);

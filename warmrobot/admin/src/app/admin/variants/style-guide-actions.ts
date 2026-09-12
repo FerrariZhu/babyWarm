@@ -7,7 +7,7 @@ import type {
   CreateStyleGuideInput,
   UpdateStyleGuideInput,
 } from "@/lib/admin/style-guide-types";
-import { createServiceClient } from "@/lib/supabase/service";
+import { query, queryOne } from "@/lib/self-hosted/database";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -57,20 +57,14 @@ export async function listAdminStyleGuides(
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    let query = supabase
-      .from("category_style_guides")
-      .select(SELECT_COLS)
-      .order("category_code", { ascending: true })
-      .order("sort_order", { ascending: true });
-
-    if (categoryCode) {
-      query = query.eq("category_code", categoryCode);
-    }
-
-    const { data, error } = await query;
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data as StyleGuideRow[]).map(mapRow) };
+    const data = await query<StyleGuideRow>(
+      `SELECT ${SELECT_COLS}
+         FROM public.category_style_guides
+        WHERE ($1::text IS NULL OR category_code = $1)
+        ORDER BY category_code ASC, sort_order ASC`,
+      [categoryCode ?? null]
+    );
+    return { ok: true, data: data.map(mapRow) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "加载失败" };
   }
@@ -86,26 +80,25 @@ export async function createStyleGuide(
   if (!title) return { ok: false, error: "标题不能为空" };
 
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("category_style_guides")
-      .insert({
-        category_id: input.category_id,
-        category_code: input.category_code,
+    const data = await queryOne<StyleGuideRow>(
+      `INSERT INTO public.category_style_guides
+        (category_id, category_code, title, subtitle, pros, cons, usage_tips, sort_order, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+       RETURNING ${SELECT_COLS}`,
+      [
+        input.category_id,
+        input.category_code,
         title,
-        subtitle: input.subtitle?.trim() || null,
-        pros: input.pros?.trim() ?? "",
-        cons: input.cons?.trim() ?? "",
-        usage_tips: input.usage_tips?.trim() ?? "",
-        sort_order: input.sort_order ?? 0,
-        is_active: true,
-      })
-      .select(SELECT_COLS)
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+        input.subtitle?.trim() || null,
+        input.pros?.trim() ?? "",
+        input.cons?.trim() ?? "",
+        input.usage_tips?.trim() ?? "",
+        input.sort_order ?? 0,
+      ]
+    );
+    if (!data) return { ok: false, error: "创建失败" };
     revalidatePath("/admin/variants");
-    return { ok: true, data: mapRow(data as StyleGuideRow) };
+    return { ok: true, data: mapRow(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "创建失败" };
   }
@@ -117,37 +110,38 @@ export async function updateStyleGuide(
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
-  const patch: Record<string, unknown> = {};
+  const patch: Array<{ column: string; value: unknown }> = [];
   if (input.title !== undefined) {
     const title = input.title.trim();
     if (!title) return { ok: false, error: "标题不能为空" };
-    patch.title = title;
+    patch.push({ column: "title", value: title });
   }
   if (input.subtitle !== undefined) {
-    patch.subtitle = input.subtitle?.trim() || null;
+    patch.push({ column: "subtitle", value: input.subtitle?.trim() || null });
   }
-  if (input.pros !== undefined) patch.pros = input.pros.trim();
-  if (input.cons !== undefined) patch.cons = input.cons.trim();
-  if (input.usage_tips !== undefined) patch.usage_tips = input.usage_tips.trim();
-  if (input.sort_order !== undefined) patch.sort_order = input.sort_order;
-  if (input.is_active !== undefined) patch.is_active = input.is_active;
+  if (input.pros !== undefined) patch.push({ column: "pros", value: input.pros.trim() });
+  if (input.cons !== undefined) patch.push({ column: "cons", value: input.cons.trim() });
+  if (input.usage_tips !== undefined) patch.push({ column: "usage_tips", value: input.usage_tips.trim() });
+  if (input.sort_order !== undefined) patch.push({ column: "sort_order", value: input.sort_order });
+  if (input.is_active !== undefined) patch.push({ column: "is_active", value: input.is_active });
 
-  if (Object.keys(patch).length === 0) {
+  if (patch.length === 0) {
     return { ok: false, error: "没有可更新的字段" };
   }
 
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("category_style_guides")
-      .update(patch)
-      .eq("id", input.id)
-      .select(SELECT_COLS)
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+    const values = patch.map((entry) => entry.value);
+    const assignments = patch.map((entry, index) => `${entry.column} = $${index + 1}`);
+    const data = await queryOne<StyleGuideRow>(
+      `UPDATE public.category_style_guides
+          SET ${assignments.join(", ")}, updated_at = now()
+        WHERE id = $${values.length + 1}
+        RETURNING ${SELECT_COLS}`,
+      [...values, input.id]
+    );
+    if (!data) return { ok: false, error: "款式说明不存在" };
     revalidatePath("/admin/variants");
-    return { ok: true, data: mapRow(data as StyleGuideRow) };
+    return { ok: true, data: mapRow(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "更新失败" };
   }
@@ -160,13 +154,7 @@ export async function deleteStyleGuide(
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    const { error } = await supabase
-      .from("category_style_guides")
-      .delete()
-      .eq("id", id);
-
-    if (error) return { ok: false, error: error.message };
+    await query("DELETE FROM public.category_style_guides WHERE id = $1", [id]);
     revalidatePath("/admin/variants");
     return { ok: true, data: undefined };
   } catch (e) {

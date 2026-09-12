@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
+import { queryOne } from "@/lib/self-hosted/database";
 import { getWeatherFromQuery } from "@/lib/weather";
 
 /**
@@ -21,18 +22,13 @@ export async function GET(request: Request) {
     null;
 
   if (!city && latitude == null && longitude == null) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
     if (user) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("city, latitude, longitude")
-        .eq("id", user.id)
-        .maybeSingle();
-      profile = data;
+      profile = await queryOne<{ city: string | null; latitude: number | null; longitude: number | null }>(
+        "SELECT city, latitude, longitude FROM public.profiles WHERE id = $1",
+        [user.id]
+      );
     }
   }
 

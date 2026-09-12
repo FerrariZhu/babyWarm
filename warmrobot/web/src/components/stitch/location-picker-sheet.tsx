@@ -76,17 +76,19 @@ export function LocationPickerSheet({
         <div className="flex flex-col gap-3">
           <label className="block">
             <span className="sr-only">搜索地点</span>
-            <span className="input-sunken flex min-h-12 items-center gap-2 rounded-2xl border border-outline-variant/50 bg-surface-container-low px-3">
+            <span className="input-sunken group flex min-h-12 items-center gap-2 rounded-2xl border border-outline-variant/50 bg-surface-container-low px-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/40">
               <MaterialIcon name="search" className="text-[22px] text-primary" />
               <input
                 ref={inputRef}
-                type="search"
+                type="text"
+                role="searchbox"
+                inputMode="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="例如 南翔、杭州、朝阳区"
                 autoComplete="off"
                 enterKeyHint="search"
-                className="font-body-md min-w-0 flex-1 bg-transparent py-3 text-on-surface outline-none placeholder:text-on-surface-variant/70"
+                className="location-search-input font-body-md min-w-0 flex-1 appearance-none border-0 bg-transparent py-3 text-on-surface shadow-none outline-none placeholder:text-on-surface-variant/70 focus-visible:outline-none"
               />
               {query ? (
                 <button

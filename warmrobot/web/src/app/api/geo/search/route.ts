@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchPlaces } from "@warmrobot/core";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
 
 const MAX_QUERY_LENGTH = 80;
 
@@ -9,10 +9,7 @@ const MAX_QUERY_LENGTH = 80;
  * Authenticated place search via Open-Meteo geocoding.
  */
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

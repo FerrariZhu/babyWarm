@@ -49,8 +49,7 @@ export function SaveDressingRecordButton({
           babyId,
           babyName,
           advice: {
-            indoorItems: current.indoorItems,
-            outdoorAdditions: current.outdoorAdditions,
+            outfitItems: current.outfitItems,
             extras: current.extras,
             reason: current.reason,
             requiredWarmth: current.requiredWarmth,
@@ -78,6 +77,7 @@ export function SaveDressingRecordButton({
     <div className={inline ? "flex flex-col items-end gap-1" : "flex flex-col gap-2 pt-2"}>
       <button
         type="button"
+        data-analytics-action="save_record"
         onClick={() => void save()}
         disabled={busy}
         className={

@@ -2,15 +2,28 @@
 
 import type { AdviceTipTag, AdviceTipTagTone } from "@warmrobot/core/client";
 import { resolveAdviceTipTags } from "@warmrobot/core/client";
-import { MaterialIcon } from "./material-icon";
+import { pencilGarmentIcon, pencilMetricIcon } from "@/lib/pencil-icons";
 import { WeatherArtwork } from "./weather-artwork";
 
-function uvLabel(uv: number): string {
-  if (uv < 3) return "低";
-  if (uv < 6) return "中等";
-  if (uv < 8) return "高";
-  if (uv < 11) return "很高";
-  return "极高";
+function WeatherControlIcon({ name, className = "" }: { name: "clock" | "location" | "chevron-down"; className?: string }) {
+  const paths = {
+    clock: <><circle cx="12" cy="12" r="8" /><path d="M12 7.5v5l3.25 2" /></>,
+    location: <><path d="M12 21s6-5.03 6-10a6 6 0 1 0-12 0c0 4.97 6 10 6 10Z" /><circle cx="12" cy="11" r="2" /></>,
+    "chevron-down": <path d="m7.5 9.5 4.5 4.5 4.5-4.5" />,
+  } as const;
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`weather-control-icon ${className}`}>{paths[name]}</svg>;
+}
+
+function WeatherIndexIcon() {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={pencilGarmentIcon("garment_tshirt_short")}
+      alt=""
+      className="weather-index-garment"
+    />
+  );
 }
 
 function windLabel(windSpeedMs: number): string {
@@ -21,20 +34,19 @@ function windLabel(windSpeedMs: number): string {
 }
 
 function MetricCell({
-  icon,
+  metric,
   label,
   value,
-  iconClass,
 }: {
-  icon: string;
+  metric: "humidity" | "uv" | "wind" | "temperature";
   label: string;
   value: string;
-  iconClass?: string;
 }) {
   return (
     <div className="weather-metric-cell flex flex-col items-center justify-center px-1.5 py-1">
-      <span className="weather-metric-icon" data-motion={icon} key={`${icon}-${value}`} aria-hidden="true">
-        <MaterialIcon name={icon} className={`text-[22px] ${iconClass ?? "text-primary"}`} />
+      <span className="weather-metric-icon" data-motion={metric} key={`${metric}-${value}`} aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={pencilMetricIcon(metric)} alt="" />
       </span>
       <span className="font-label-sm text-text-soft">{label}</span>
       <span className="font-label-md text-on-surface">{value}</span>
@@ -59,13 +71,11 @@ function tipToneClass(tone: AdviceTipTagTone): string {
 
 function ContextPickButton({
   icon,
-  filled,
   label,
   ariaLabel,
   onClick,
 }: {
-  icon: string;
-  filled?: boolean;
+  icon: "clock" | "location";
   label: string;
   ariaLabel: string;
   onClick: () => void;
@@ -77,9 +87,9 @@ function ContextPickButton({
       onClick={onClick}
       className="flex min-h-11 min-w-0 items-center gap-1 rounded-lg px-1.5 py-1 text-left text-on-surface transition-colors hover:bg-surface-container-lowest/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
-      <MaterialIcon name={icon} filled={filled} className="shrink-0 text-[18px] text-primary" />
+      <WeatherControlIcon name={icon} className="shrink-0 text-primary" />
       <span className="font-label-sm min-w-0 truncate">{label}</span>
-      <MaterialIcon name="expand_more" className="shrink-0 text-[18px] text-outline" />
+      <WeatherControlIcon name="chevron-down" className="shrink-0 text-outline" />
     </button>
   );
 }
@@ -98,7 +108,7 @@ export function WeatherContextRow({
   return (
     <div className="weather-context-row relative z-10 flex min-w-0 items-center">
       <ContextPickButton
-        icon="schedule"
+        icon="clock"
         label={timeLabel}
         ariaLabel="选择时间"
         onClick={onPickTime}
@@ -108,8 +118,7 @@ export function WeatherContextRow({
       </span>
       <div className="min-w-0 flex-1">
         <ContextPickButton
-          icon="location_on"
-          filled
+          icon="location"
           label={locationLabel}
           ariaLabel="选择地点"
           onClick={onPickLocation}
@@ -160,7 +169,6 @@ export function WeatherWidget({
   requiredWarmth?: number | null;
 }) {
   const uv = weather.uvIndex ?? 0;
-  const uvHigh = uv >= 6;
   // 仅在极端条件下展示摘要；常规提醒由下方气象指标和标签承载。
   const summaryParts = [
     Math.max(weather.temp, weather.feelsLike) >= 35 ? "高温天气" : null,
@@ -198,36 +206,38 @@ export function WeatherWidget({
         onPickLocation={onPickLocation}
       />
 
-      <div className="weather-overview relative z-10 mb-2.5 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="mb-0.5 flex flex-wrap items-end gap-1.5">
-            <span className="weather-temperature text-primary">
-              {Math.round(weather.temp)}<span className="weather-temperature-unit">°C</span>
-            </span>
+      <div className="weather-overview relative z-10 mb-2.5 flex items-center justify-between gap-2">
+        <div className="weather-reading min-w-0">
+          <span className="weather-temperature text-primary">
+            {Math.round(weather.temp)}<span className="weather-temperature-unit">°C</span>
+          </span>
+          <span className="weather-reading-divider" aria-hidden="true" />
+          <div className="weather-condition min-w-0">
+            <p className="weather-condition-title">{weather.text}</p>
+            {summary && (
+              <p className="weather-condition-summary text-on-surface-variant">{summary}</p>
+            )}
           </div>
-          <p className="weather-feels-like text-text-soft">
-            体感 {Math.round(weather.feelsLike)}°C · {weather.text}
-          </p>
-          {summary && (
-            <p className="font-body-md leading-snug text-on-surface-variant">{summary}</p>
-          )}
         </div>
         <WeatherArtwork condition={weather.text} />
       </div>
 
-      <div className="weather-metrics relative z-10 grid grid-cols-3">
-        <MetricCell icon="humidity_percentage" label="湿度" value={`${weather.humidity}%`} />
+      <div className="weather-metrics relative z-10 grid grid-cols-4">
+        <MetricCell metric="humidity" label="湿度" value={`${weather.humidity}%`} />
         <MetricCell
-          icon="wb_sunny"
+          metric="uv"
           label="紫外线"
-          value={`${uv % 1 === 0 ? uv : uv.toFixed(1)}（${uvLabel(uv)}）`}
-          iconClass={uvHigh ? "text-weather-uv-alert" : "text-weather-sunny"}
+          value={`${uv % 1 === 0 ? uv : uv.toFixed(1)}`}
         />
         <MetricCell
-          icon="air"
+          metric="wind"
           label="风速"
           value={windLabel(weather.windSpeed)}
-          iconClass="text-text-soft"
+        />
+        <MetricCell
+          metric="temperature"
+          label="体感温度"
+          value={`${Math.round(weather.feelsLike)}°C`}
         />
       </div>
 
@@ -235,13 +245,18 @@ export function WeatherWidget({
         <div className="weather-footer">
           {adviceValue != null && (
             <section className="weather-index-panel" aria-label={`穿衣指数 ${adviceValue}`}>
-              <div className="weather-index-description">
-                <p>结合气温、体感、湿度和风速，数值越高，穿得越暖</p>
-                <WeatherTipChips tags={tipTags} />
-              </div>
-              <div className="weather-index-heading">
-                <h3>穿衣指数</h3>
-                <span className="weather-index-value">{adviceValue}</span>
+              <span className="weather-index-icon" aria-hidden="true">
+                <WeatherIndexIcon />
+              </span>
+              <div className="weather-index-content">
+                <div className="weather-index-heading">
+                  <h3>穿衣指数</h3>
+                  <span className="weather-index-value">{adviceValue}</span>
+                </div>
+                <div className="weather-index-description">
+                  <p>结合气温、体感、湿度和风速，数值越高，穿得越暖</p>
+                  <WeatherTipChips tags={tipTags} />
+                </div>
               </div>
             </section>
           )}

@@ -14,7 +14,7 @@ export default async function AddBabyPage() {
         <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[60%] rounded-full bg-primary-fixed-dim/20 blur-[100px]" />
         <div className="absolute right-[-10%] bottom-[-10%] h-[50%] w-[50%] rounded-full bg-secondary-fixed-dim/10 blur-[120px]" />
       </div>
-      <main className="relative z-10 mx-auto max-w-[768px] px-margin-mobile pt-8 pb-32 md:px-margin-desktop md:pt-12">
+      <main data-analytics-module="add_baby_form" className="relative z-10 mx-auto max-w-[768px] px-margin-mobile pt-8 pb-32 md:px-margin-desktop md:pt-12">
         <AddBabyForm redirectTo="/" />
       </main>
     </AppShell>

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import "@chinese-fonts/xiaolai/dist/Xiaolai/result.css";
+import "@free-fonts/lxgw-975-yuan";
 import "@fontsource-variable/material-symbols-outlined/full.css";
 import "./globals.css";
+import { AnalyticsTracker } from "@/components/analytics-tracker";
 
 export const metadata: Metadata = {
   title: "暖宝宝",
@@ -21,7 +24,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AnalyticsTracker />
+        {children}
+      </body>
     </html>
   );
 }

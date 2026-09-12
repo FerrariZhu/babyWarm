@@ -7,7 +7,7 @@ import type {
   CreateVariantInput,
   UpdateVariantInput,
 } from "@/lib/admin/variant-types";
-import { createServiceClient } from "@/lib/supabase/service";
+import { query, queryOne } from "@/lib/self-hosted/database";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -84,33 +84,35 @@ type AxisTuple = {
 };
 
 async function assertUniqueAxisTuple(
-  supabase: ReturnType<typeof createServiceClient>,
   tuple: AxisTuple,
   excludeId?: string
 ): Promise<ActionResult> {
-  let query = supabase.from("garment_variants").select("id").eq("category_id", tuple.category_id);
-
-  const axisFields: (keyof Omit<AxisTuple, "category_id">)[] = [
-    "material",
-    "fill_type",
-    "thickness",
-    "fit_type",
-    "bodysuit_style",
-    "pant_length",
-    "sock_height",
-  ];
-  for (const field of axisFields) {
-    const value = tuple[field];
-    query = value == null ? query.is(field, null) : query.eq(field, value);
-  }
-
-  if (excludeId) {
-    query = query.neq("id", excludeId);
-  }
-
-  const { data, error } = await query.maybeSingle();
-  if (error) return { ok: false, error: error.message };
-  if (data) {
+  const duplicate = await queryOne<{ id: string }>(
+    `SELECT id
+       FROM public.garment_variants
+      WHERE category_id IS NOT DISTINCT FROM $1
+        AND material IS NOT DISTINCT FROM $2
+        AND fill_type IS NOT DISTINCT FROM $3
+        AND thickness IS NOT DISTINCT FROM $4
+        AND fit_type IS NOT DISTINCT FROM $5
+        AND bodysuit_style IS NOT DISTINCT FROM $6
+        AND pant_length IS NOT DISTINCT FROM $7
+        AND sock_height IS NOT DISTINCT FROM $8
+        AND ($9::uuid IS NULL OR id <> $9)
+      LIMIT 1`,
+    [
+      tuple.category_id,
+      tuple.material,
+      tuple.fill_type,
+      tuple.thickness,
+      tuple.fit_type,
+      tuple.bodysuit_style,
+      tuple.pant_length,
+      tuple.sock_height,
+      excludeId ?? null,
+    ]
+  );
+  if (duplicate) {
     return { ok: false, error: "该材料/版型/属性组合已存在，请调整轴字段" };
   }
   return { ok: true, data: undefined };
@@ -123,21 +125,14 @@ export async function listAdminVariants(
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    let query = supabase
-      .from("garment_variants")
-      .select(VARIANT_SELECT)
-      .order("category_code", { ascending: true })
-      .order("sort_order", { ascending: true });
-
-    if (categoryCode) {
-      query = query.eq("category_code", categoryCode);
-    }
-
-    const { data, error } = await query;
-    if (error) return { ok: false, error: error.message };
-
-    return { ok: true, data: (data as VariantRow[]).map(mapVariant) };
+    const data = await query<VariantRow>(
+      `SELECT ${VARIANT_SELECT}
+         FROM public.garment_variants
+        WHERE ($1::text IS NULL OR category_code = $1)
+        ORDER BY category_code ASC, sort_order ASC`,
+      [categoryCode ?? null]
+    );
+    return { ok: true, data: data.map(mapVariant) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "加载失败" };
   }
@@ -170,46 +165,45 @@ export async function createVariant(
   };
 
   try {
-    const supabase = createServiceClient();
-    const unique = await assertUniqueAxisTuple(supabase, axisTuple);
+    const unique = await assertUniqueAxisTuple(axisTuple);
     if (!unique.ok) return unique;
 
-    const { data: maxSort } = await supabase
-      .from("garment_variants")
-      .select("sort_order")
-      .eq("category_code", input.category_code)
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const maxSort = await queryOne<{ sort_order: number }>(
+      "SELECT sort_order FROM public.garment_variants WHERE category_code = $1 ORDER BY sort_order DESC LIMIT 1",
+      [input.category_code]
+    );
 
     const admin_label = `${input.category_code}-${consumer_label}`;
 
-    const { data, error } = await supabase
-      .from("garment_variants")
-      .insert({
-        category_id: input.category_id,
-        category_code: input.category_code,
-        material: axisTuple.material,
-        fill_type: axisTuple.fill_type,
-        thickness: axisTuple.thickness,
-        fit_type: axisTuple.fit_type,
-        bodysuit_style: axisTuple.bodysuit_style,
-        pant_length: axisTuple.pant_length,
-        sock_height: axisTuple.sock_height,
+    const data = await queryOne<VariantRow>(
+      `INSERT INTO public.garment_variants
+        (category_id, category_code, material, fill_type, thickness, fit_type,
+         bodysuit_style, pant_length, sock_height, warmth_value, admin_label,
+         consumer_label, consumer_label_en, consumer_tags, is_active, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       RETURNING ${VARIANT_SELECT}`,
+      [
+        input.category_id,
+        input.category_code,
+        axisTuple.material,
+        axisTuple.fill_type,
+        axisTuple.thickness,
+        axisTuple.fit_type,
+        axisTuple.bodysuit_style,
+        axisTuple.pant_length,
+        axisTuple.sock_height,
         warmth_value,
         admin_label,
         consumer_label,
         consumer_label_en,
-        consumer_tags: [],
-        is_active: input.is_active ?? true,
-        sort_order: (maxSort?.sort_order ?? 0) + 1,
-      })
-      .select(VARIANT_SELECT)
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+        [],
+        input.is_active ?? true,
+        (maxSort?.sort_order ?? 0) + 1,
+      ]
+    );
+    if (!data) return { ok: false, error: "创建失败" };
     revalidatePath("/admin/variants");
-    return { ok: true, data: mapVariant(data as VariantRow) };
+    return { ok: true, data: mapVariant(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "创建失败" };
   }
@@ -221,33 +215,33 @@ export async function updateVariant(
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const patch: Array<{ column: string; value: unknown }> = [];
 
   if (input.consumer_label !== undefined) {
     const label = input.consumer_label.trim();
     if (!label) return { ok: false, error: "类型名称不能为空" };
-    patch.consumer_label = label;
+    patch.push({ column: "consumer_label", value: label });
   }
   if (input.consumer_label_en !== undefined) {
     const labelEn = input.consumer_label_en.trim();
     if (!labelEn) return { ok: false, error: "类型英文名称不能为空" };
-    patch.consumer_label_en = labelEn;
+    patch.push({ column: "consumer_label_en", value: labelEn });
   }
   if (input.pros !== undefined) {
-    patch.pros = input.pros.trim();
+    patch.push({ column: "pros", value: input.pros.trim() });
   }
   if (input.usage_tips !== undefined) {
-    patch.usage_tips = input.usage_tips.trim();
+    patch.push({ column: "usage_tips", value: input.usage_tips.trim() });
   }
   if (input.warmth_value !== undefined) {
     const v = Number(input.warmth_value);
     if (!Number.isInteger(v) || v < 0 || v > 100) {
       return { ok: false, error: "保暖值须为 0–100 整数" };
     }
-    patch.warmth_value = v;
+    patch.push({ column: "warmth_value", value: v });
   }
   if (input.is_active !== undefined) {
-    patch.is_active = input.is_active;
+    patch.push({ column: "is_active", value: input.is_active });
   }
 
   const axisKeys = [
@@ -261,23 +255,18 @@ export async function updateVariant(
   ] as const;
   for (const key of axisKeys) {
     if (input[key] !== undefined) {
-      patch[key] = input[key];
+      patch.push({ column: key, value: input[key] });
     }
   }
 
   try {
-    const supabase = createServiceClient();
-
     const axisChanged = axisKeys.some((key) => input[key] !== undefined);
     if (axisChanged) {
-      const { data: current, error: loadError } = await supabase
-        .from("garment_variants")
-        .select(VARIANT_SELECT)
-        .eq("id", input.id)
-        .single();
-      if (loadError) return { ok: false, error: loadError.message };
-
-      const row = current as VariantRow;
+      const row = await queryOne<VariantRow>(
+        `SELECT ${VARIANT_SELECT} FROM public.garment_variants WHERE id = $1`,
+        [input.id]
+      );
+      if (!row) return { ok: false, error: "细类型不存在" };
       const tuple: AxisTuple = {
         category_id: row.category_id,
         material:
@@ -298,20 +287,23 @@ export async function updateVariant(
           input.sock_height !== undefined ? input.sock_height : row.sock_height,
       };
 
-      const unique = await assertUniqueAxisTuple(supabase, tuple, input.id);
+      const unique = await assertUniqueAxisTuple(tuple, input.id);
       if (!unique.ok) return unique;
     }
 
-    const { data, error } = await supabase
-      .from("garment_variants")
-      .update(patch)
-      .eq("id", input.id)
-      .select(VARIANT_SELECT)
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+    if (patch.length === 0) return { ok: false, error: "没有可更新的字段" };
+    const values = patch.map((entry) => entry.value);
+    const assignments = patch.map((entry, index) => `${entry.column} = $${index + 1}`);
+    const data = await queryOne<VariantRow>(
+      `UPDATE public.garment_variants
+          SET ${assignments.join(", ")}, updated_at = now()
+        WHERE id = $${values.length + 1}
+        RETURNING ${VARIANT_SELECT}`,
+      [...values, input.id]
+    );
+    if (!data) return { ok: false, error: "细类型不存在" };
     revalidatePath("/admin/variants");
-    return { ok: true, data: mapVariant(data as VariantRow) };
+    return { ok: true, data: mapVariant(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "更新失败" };
   }

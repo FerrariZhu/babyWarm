@@ -52,7 +52,7 @@ function WeatherWidgetSkeleton({
   onPickLocation: () => void;
 }) {
   return (
-    <section className="glass-weather relative flex flex-col overflow-hidden rounded-2xl p-card-padding">
+    <section data-analytics-module="weather" className="glass-weather relative flex flex-col overflow-hidden rounded-2xl p-card-padding">
       <WeatherContextRow
         timeLabel={timeLabel}
         locationLabel={locationLabel}
@@ -331,7 +331,7 @@ export function LiveWeatherSection({
   if (!weather) {
     return (
       <div className="flex flex-col gap-3 pt-2">
-        <section className="rounded-2xl bg-error-container p-4">
+        <section data-analytics-module="weather" className="rounded-2xl bg-error-container p-4">
           <WeatherContextRow {...context} />
           <div className="text-center">
             <MaterialIcon name="cloud_off" className="mb-3 text-[40px] text-on-error-container" />
@@ -376,7 +376,7 @@ export function LiveWeatherSection({
           </div>
         </div>
       )}
-      <div className="flex flex-col gap-3 pt-2">
+      <div data-analytics-module="weather" className="flex flex-col gap-3 pt-2">
         <WeatherWidget
           weather={weather}
           requiredWarmth={requiredWarmth}

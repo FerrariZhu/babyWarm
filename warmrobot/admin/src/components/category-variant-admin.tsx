@@ -14,6 +14,7 @@ import { createVariant } from "@/app/admin/variants/actions";
 import { MaterialIcon } from "@/components/material-icon";
 import { VariantAdminTable } from "@/components/variant-admin-table";
 import { CategoryGuideAdminPanel } from "@/components/category-guide-admin-panel";
+import type { GuideVisualAsset } from "@/app/admin/variants/category-guide-actions";
 import {
   OUTFIT_SLOTS,
   outfitSlotLabel,
@@ -26,6 +27,7 @@ type Props = {
   categories: AdminCategory[];
   variants: AdminVariant[];
   categoryGuides: CategoryGuideContent[];
+  guideVisualAssets: GuideVisualAsset[];
   selectedCategoryCode?: string;
 };
 
@@ -61,6 +63,7 @@ export function CategoryVariantAdmin({
   categories: initialCategories,
   variants: initialVariants,
   categoryGuides,
+  guideVisualAssets,
   selectedCategoryCode,
 }: Props) {
   const router = useRouter();
@@ -596,6 +599,7 @@ export function CategoryVariantAdmin({
           categoryCode={selected.code}
           categoryName={selected.name_zh}
           initialGuide={selectedGuide}
+          initialVisualAssets={guideVisualAssets.filter((asset) => asset.categoryCode === selected.code)}
         />
       ) : null}
 

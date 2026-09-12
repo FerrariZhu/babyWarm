@@ -1,11 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
-import type { CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { formatAuthLoginError } from "@/lib/auth/login-error";
-import { recordLoginActivity } from "@/lib/auth/login-activity";
-import { getSupabaseEnv } from "@/lib/env";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createConsumerSession, sessionCookieOptions, verifyPassword } from "@/lib/self-hosted/auth";
+import { queryOne } from "@/lib/self-hosted/database";
 
 export async function POST(request: Request) {
   try {
@@ -29,34 +24,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请输入邮箱和密码" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const { url, key } = getSupabaseEnv();
-    const supabase = createServerClient(url, key, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
-      },
-    });
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return NextResponse.json({ error: formatAuthLoginError(error) }, { status: 401 });
+    const account = await queryOne<{ id: string; password_hash: string | null }>(
+      "SELECT id, password_hash FROM public.app_accounts WHERE email = $1 AND is_active = true",
+      [email.toLowerCase()]
+    );
+    if (!account?.password_hash || !verifyPassword(password, account.password_hash)) {
+      return NextResponse.json({ error: "邮箱或密码不正确" }, { status: 401 });
     }
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      throw userError ?? new Error("未获取到已登录用户");
-    }
-    await recordLoginActivity(createServiceClient(), userData.user.id, "email_password");
-
-    return NextResponse.json({ ok: true });
+    const token = await createConsumerSession(account.id);
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set("warmrobot_session", token, sessionCookieOptions());
+    return response;
   } catch (error) {
-    return NextResponse.json({ error: formatAuthLoginError(error) }, { status: 503 });
+    console.error("[email-login]", error);
+    return NextResponse.json({ error: "登录服务暂时不可用" }, { status: 503 });
   }
 }

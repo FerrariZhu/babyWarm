@@ -5,10 +5,11 @@ import type {
   HomeDailyBriefWeather,
 } from "./daily-brief-types";
 
-/** Persisted indoor / outdoor / extras snapshot — weather tip tags are not stored. */
+/** Persisted complete outfit. Legacy zone fields remain readable for old records. */
 export interface DressingRecordOutfit {
-  indoorItems: AdviceItem[];
-  outdoorAdditions: AdviceItem[];
+  outfitItems?: AdviceItem[];
+  indoorItems?: AdviceItem[];
+  outdoorAdditions?: AdviceItem[];
   extras: AdviceExtra[];
 }
 
@@ -27,7 +28,7 @@ export interface DressingRecord {
 
 export type SaveDressingRecordAdvice = Pick<
   DressingAdvice,
-  "indoorItems" | "outdoorAdditions" | "extras" | "reason" | "requiredWarmth"
+  "outfitItems" | "extras" | "reason" | "requiredWarmth"
 >;
 
 export type SaveDressingRecordInput = {
@@ -42,8 +43,7 @@ export type ParseSaveResult =
   | { ok: false; error: string };
 
 export type OutfitSummary = {
-  indoor: string;
-  outdoor: string;
+  outfit: string;
   extras: string;
 };
 
@@ -113,8 +113,7 @@ function cloneExtra(extra: AdviceExtra): AdviceExtra {
 
 function cloneOutfit(advice: SaveDressingRecordAdvice): DressingRecordOutfit {
   return {
-    indoorItems: advice.indoorItems.map(cloneItem),
-    outdoorAdditions: advice.outdoorAdditions.map(cloneItem),
+    outfitItems: advice.outfitItems.map(cloneItem),
     extras: advice.extras.map(cloneExtra),
   };
 }
@@ -145,9 +144,12 @@ function joinLabels(labels: string[]): string {
 }
 
 export function summarizeOutfit(outfit: DressingRecordOutfit): OutfitSummary {
+  const outfitItems = outfit.outfitItems ?? [
+    ...(outfit.indoorItems ?? []),
+    ...(outfit.outdoorAdditions ?? []),
+  ];
   return {
-    indoor: joinLabels(outfit.indoorItems.map((item) => item.label)),
-    outdoor: joinLabels(outfit.outdoorAdditions.map((item) => item.label)),
+    outfit: joinLabels(outfitItems.map((item) => item.label)),
     extras: joinLabels(outfit.extras.map((extra) => extra.item?.label ?? extra.type)),
   };
 }
@@ -155,6 +157,10 @@ export function summarizeOutfit(outfit: DressingRecordOutfit): OutfitSummary {
 export function mapDressingRecordRow(
   row: DressingRecordRow
 ): DressingRecord & { id: string } {
+  const outfitItems = row.outfit.outfitItems ?? [
+    ...(row.outfit.indoorItems ?? []),
+    ...(row.outfit.outdoorAdditions ?? []),
+  ];
   return {
     id: row.id,
     babyId: row.baby_id,
@@ -165,7 +171,7 @@ export function mapDressingRecordRow(
     reason: row.reason ?? "",
     locationLabel: row.location_label ?? undefined,
     weather: row.weather ?? undefined,
-    outfit: row.outfit,
+    outfit: { outfitItems, extras: row.outfit.extras ?? [] },
   };
 }
 
@@ -287,10 +293,9 @@ export function parseSaveDressingRecordInput(body: unknown): ParseSaveResult {
     return { ok: false, error: "无法保存：穿衣指数无效" };
   }
 
-  const indoorItems = parseItemArray(body.advice.indoorItems);
-  const outdoorAdditions = parseItemArray(body.advice.outdoorAdditions);
+  const outfitItems = parseItemArray(body.advice.outfitItems);
   const extras = parseExtraArray(body.advice.extras ?? []);
-  if (!indoorItems || !outdoorAdditions || !extras) {
+  if (!outfitItems || !extras) {
     return { ok: false, error: "无法保存：清单内容无效" };
   }
 
@@ -308,8 +313,7 @@ export function parseSaveDressingRecordInput(body: unknown): ParseSaveResult {
       babyId,
       babyName,
       advice: {
-        indoorItems,
-        outdoorAdditions,
+        outfitItems,
         extras,
         reason,
         requiredWarmth,

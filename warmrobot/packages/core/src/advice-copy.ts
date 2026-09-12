@@ -33,18 +33,14 @@ export interface AdviceCopySlots {
 export interface FormattedAdviceCopy {
   blockTitle: string;
   headline: string;
-  indoorHeading: string;
-  outdoorHeading: string;
+  outfitHeading: string;
   extrasHeading: string;
-  emptyOutdoor: string;
 }
 
 export const ADVICE_COPY = {
   blockTitleNow: "穿搭建议",
-  indoorHeading: "家里穿",
-  outdoorHeading: "出门再加",
+  outfitHeading: "今日穿搭",
   extrasHeading: "记得带",
-  emptyOutdoor: "出门不用再加衣服。",
   checklistTitle: "穿搭清单",
   umbrellaLabel: "雨伞",
   rainRaining: "外面在下雨",
@@ -303,10 +299,9 @@ function itemsBySlot(
 
 function wearClauses(
   heat: HeatSlot,
-  indoorItems: AdviceItem[],
-  outdoorAdditions: AdviceItem[]
+  outfitItems: AdviceItem[]
 ): string[] {
-  const bySlot = itemsBySlot([...indoorItems, ...outdoorAdditions]);
+  const bySlot = itemsBySlot(outfitItems);
   const base = bySlot.get("base_top");
   const mid = bySlot.get("mid_top");
   const outer = bySlot.get("outer");
@@ -333,10 +328,12 @@ function wearClauses(
       lines.push(
         `下身穿贴身${intimateBaseBottomPhrase(baseBottom)}加${garmentPhrase(bottom)}就可以啦。`
       );
+    } else if (baseBottom) {
+      lines.push(`下身穿贴身${intimateBaseBottomPhrase(baseBottom)}就行。`);
     } else if (bottom) {
       lines.push(`下身穿${garmentPhrase(bottom)}就行。`);
     } else {
-      lines.push("下身按清单搭配就行。");
+      lines.push("下身需要补穿一条保暖长裤。");
     }
 
     if (socks) {
@@ -358,7 +355,7 @@ function wearClauses(
     if (bottom) {
       lines.push(`下身搭条${garmentPhrase(bottom, { lightBottom: isHot })}`);
     }
-    if (lines.length === 0) return ["建议按家里清单穿着。"];
+    if (lines.length === 0) return ["建议按今日穿搭清单穿着。"];
     if (socks && !bottom) {
       lines.push(socksClause(socks, "hot"));
     }
@@ -374,17 +371,16 @@ function wearClauses(
     const phrase = garmentPhrase(bottom);
     lines.push(phrase === "裤子" ? `下身穿${phrase}就行` : `裤子穿${phrase}就行`);
   }
-  if (lines.length === 0) return ["建议按家里清单穿着。"];
+  if (lines.length === 0) return ["建议按今日穿搭清单穿着。"];
   lines[lines.length - 1] = `${lines[lines.length - 1]}。`;
   return lines;
 }
 
 function wearSentence(
   heat: HeatSlot,
-  indoorItems: AdviceItem[],
-  outdoorAdditions: AdviceItem[]
+  outfitItems: AdviceItem[]
 ): string {
-  const lines = wearClauses(heat, indoorItems, outdoorAdditions);
+  const lines = wearClauses(heat, outfitItems);
   if (lines.length <= 1) return lines[0] ?? "";
   if (lines.every((l) => l.endsWith("。"))) return lines.join("");
   const last = lines[lines.length - 1] ?? "";
@@ -396,11 +392,11 @@ function wearSentence(
 
 function uvSentence(
   weather: WeatherSnapshot,
-  outdoorAdditions: AdviceItem[]
+  outfitItems: AdviceItem[]
 ): string | null {
   const intensity = uvIntensityLabel(weather.uvIndex ?? 0);
   if (!intensity) return null;
-  const labels = outdoorAdditions
+  const labels = outfitItems
     .filter(isUvGear)
     .map((i) => i.label)
     .filter(Boolean);
@@ -422,10 +418,10 @@ function rainSentence(rain: RainSlot): string | null {
 
 function coldAccessorySentence(
   heat: HeatSlot,
-  outdoorAdditions: AdviceItem[]
+  outfitItems: AdviceItem[]
 ): string | null {
   if (heat !== "cold" && heat !== "freezing") return null;
-  const labels = outdoorAdditions
+  const labels = outfitItems
     .filter(
       (i) =>
         i.kind === "category" &&
@@ -443,8 +439,7 @@ function coldAccessorySentence(
 export interface FormatAdviceConclusionInput {
   weather: WeatherSnapshot;
   requiredWarmth: number;
-  indoorItems: AdviceItem[];
-  outdoorAdditions: AdviceItem[];
+  outfitItems: AdviceItem[];
   /** Whole months since birth; drives diaper sentence. Default 0. */
   ageMonths?: number;
   /** Profile diaper status; false suppresses diaper copy. */
@@ -480,8 +475,7 @@ export function formatAdviceConclusionBlocks(
   const {
     weather,
     requiredWarmth,
-    indoorItems,
-    outdoorAdditions,
+    outfitItems,
     ageMonths = 0,
     wearsDiaper = null,
   } = input;
@@ -492,8 +486,8 @@ export function formatAdviceConclusionBlocks(
     conclusionBlock("weather", [weatherSummarySentence(weather)]),
     {
       kind: "wear",
-      lines: wearClauses(heat, indoorItems, outdoorAdditions),
-      text: wearSentence(heat, indoorItems, outdoorAdditions),
+      lines: wearClauses(heat, outfitItems),
+      text: wearSentence(heat, outfitItems),
     },
   ];
 
@@ -501,13 +495,13 @@ export function formatAdviceConclusionBlocks(
     blocks.splice(1, 0, conclusionBlock("diaper", [diaperLine]));
   }
 
-  const uv = uvSentence(weather, outdoorAdditions);
+  const uv = uvSentence(weather, outfitItems);
   if (uv) blocks.push(conclusionBlock("uv", [uv]));
 
   const rainLine = rainSentence(rain);
   if (rainLine) blocks.push(conclusionBlock("rain", [rainLine]));
 
-  const accessories = coldAccessorySentence(heat, outdoorAdditions);
+  const accessories = coldAccessorySentence(heat, outfitItems);
   if (accessories) blocks.push(conclusionBlock("accessory", [accessories]));
 
   return blocks;
@@ -529,12 +523,12 @@ export function formatAdviceConclusion(
 export function formatAdviceHeadline(slots: AdviceCopySlots): string {
   const heat =
     slots.heat === "hot" || slots.heat === "warm"
-      ? "家里短袖就够。"
+      ? "现在穿轻薄一套就够。"
       : slots.heat === "mild"
-        ? "家里穿好打底。"
+        ? "现在穿好长袖和长裤。"
         : slots.heat === "cool"
-          ? "家里要穿暖和些。"
-          : "家里也要保暖。";
+          ? "现在需要适当叠穿。"
+          : "现在要注意保暖。";
   if (slots.rain === "raining") return `${heat}${ADVICE_COPY.rainRaining}。`;
   if (slots.rain === "likely") return `${heat}${ADVICE_COPY.rainLikely}。`;
   if (slots.uv === "high") return `${heat}出门注意防晒。`;
@@ -549,11 +543,10 @@ function extraKeys(extras: AdviceExtra[]): string[] {
   return [...extras.map((e) => e.type)].sort();
 }
 
-/** Stable fingerprint of indoor + outdoor + extras + tip tags (ids/types only). */
+/** Stable fingerprint of the complete outfit + extras + tip tags (ids/types only). */
 export function adviceFingerprint(advice: DressingAdvice): string {
   return [
-    itemIds(advice.indoorItems).join(","),
-    itemIds(advice.outdoorAdditions).join(","),
+    itemIds(advice.outfitItems).join(","),
     extraKeys(advice.extras).join(","),
     [...(advice.tags ?? []).map((t) => t.code)].sort().join(","),
   ].join("|");
@@ -563,9 +556,7 @@ export function formatAdviceCopy(input: FormatAdviceConclusionInput): FormattedA
   return {
     blockTitle: ADVICE_COPY.blockTitleNow,
     headline: formatAdviceConclusion(input),
-    indoorHeading: ADVICE_COPY.indoorHeading,
-    outdoorHeading: ADVICE_COPY.outdoorHeading,
+    outfitHeading: ADVICE_COPY.outfitHeading,
     extrasHeading: ADVICE_COPY.extrasHeading,
-    emptyOutdoor: ADVICE_COPY.emptyOutdoor,
   };
 }

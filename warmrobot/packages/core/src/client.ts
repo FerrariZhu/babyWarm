@@ -19,8 +19,14 @@ export type {
   CategoryGuideEntry,
   CategoryGuideView,
   CategoryGuideViewEntry,
+  GuideVisualAsset,
 } from "./category-guides";
-export { buildCategoryGuideView } from "./category-guides";
+export {
+  attachGuideVisualAssets,
+  buildCategoryGuideView,
+  CATEGORY_GUIDE_VISUAL_AXIS,
+  CATEGORY_GUIDE_VISUAL_VALUE,
+} from "./category-guides";
 export type { VariantCopyCard } from "./daily-brief-types";
 export type { AdviceTipTag, AdviceTipTagTone } from "./advice-tip-tags";
 export type { DressingRecord } from "./dressing-records";

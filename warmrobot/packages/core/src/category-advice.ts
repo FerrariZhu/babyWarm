@@ -1,7 +1,6 @@
 import { applyOutfitIndex } from "./checklist-warmth";
 import {
   ADVICE_COPY,
-  DIAPER_OPTIONAL_AGE_MONTHS,
   formatAdviceConclusion,
   rainFromWeather,
   umbrellaReasonFromRain,
@@ -18,7 +17,7 @@ import {
 } from "./daily-brief-types";
 import { isWarmthInCategoryRange } from "./category-warmth-ranges";
 import { calcRequiredWarmth } from "./required-warmth";
-import type { BabyProfile, ClothingCategory, WeatherSnapshot } from "./types";
+import type { BabyProfile, ClothingCategory, TimeSlot, WeatherSnapshot } from "./types";
 import {
   buildAlternativeGroups,
   pickClosestWarmth,
@@ -28,24 +27,17 @@ import {
 import { SWAP_WARMTH_DELTA_MAX, swapWarmthDeltaMax, type VariantSlimRow } from "./variant-types";
 import {
   PRECIP_PROBABILITY_THRESHOLD,
-  UV_MODERATE_THRESHOLD,
   UV_OUTDOOR_THRESHOLD,
   WINTER_HAT_WARMTH_THRESHOLD,
 } from "./warmth-thresholds";
 import { resolveAdviceTipTags } from "./advice-tip-tags";
 import { compactVariantCopy } from "./variant-copy-compact";
 import {
-  DIAPER_OUTFIT_SLOT,
-  DIAPER_WARMTH_VALUE,
-  type ChecklistWarmthZone,
-} from "./checklist-warmth";
-import {
   HAT_KIND_LABELS,
   hatKindFromAttrs,
   type HatKind,
 } from "./garment-variant-generator";
 import { buildVariantSubtitleFromRow } from "./variant-subtitle";
-import { shouldRecommendDiaper } from "./diaper-status";
 
 export type { VariantSlimRow } from "./variant-types";
 
@@ -54,8 +46,7 @@ export const UMBRELLA_PRECIP_THRESHOLD = PRECIP_PROBABILITY_THRESHOLD;
 
 type CategoryBand = {
   maxWarmth: number;
-  indoor: ClothingCategory[];
-  outdoor: ClothingCategory[];
+  outfit: ClothingCategory[];
 };
 
 const BODYSUT_PREF_MONTHS = 12;
@@ -94,6 +85,7 @@ const SLOT_POOLS = {
 };
 
 type OutfitSlot = keyof typeof SLOT_POOLS;
+export type Season = "spring" | "summer" | "autumn" | "winter";
 
 const CATEGORY_TO_SLOT: Partial<Record<ClothingCategory, OutfitSlot>> = {
   bodysuit_short: "base_top",
@@ -126,33 +118,61 @@ const CATEGORY_TO_SLOT: Partial<Record<ClothingCategory, OutfitSlot>> = {
 const WARMTH_CATEGORY_BANDS: CategoryBand[] = [
   {
     maxWarmth: 25,
-    indoor: ["bodysuit_short", "socks"],
-    outdoor: ["hat", "outer_uv", "shoes_sandal"],
+    outfit: ["bodysuit_short", "pants_short", "shoes_sandal"],
   },
   {
     maxWarmth: 40,
-    indoor: ["bodysuit_short", "pants_short", "socks"],
-    outdoor: ["hat", "outer_uv", "shoes_sneaker"],
+    outfit: ["bodysuit_short", "pants_short", "socks", "shoes_sneaker"],
   },
   {
     maxWarmth: 55,
-    indoor: ["bodysuit_long", "pants_long", "socks"],
-    outdoor: ["outer_shell", "hat", "shoes_sneaker"],
+    outfit: [
+      "bodysuit_long",
+      "outer_shell",
+      "pants_long",
+      "socks",
+      "shoes_sneaker",
+    ],
   },
   {
     maxWarmth: 70,
-    indoor: ["thermal_top", "long_johns", "socks"],
-    outdoor: ["sweater", "outer_shell", "hat", "shoes_sneaker"],
+    outfit: [
+      "tshirt_long",
+      "sweater",
+      "outer_shell",
+      "pants_long",
+      "socks",
+      "shoes_sneaker",
+    ],
   },
   {
     maxWarmth: 85,
-    indoor: ["thermal_top", "long_johns", "socks"],
-    outdoor: ["fleece_top", "outer_cotton", "hat", "gloves", "shoes_boot"],
+    outfit: [
+      "thermal_top",
+      "fleece_top",
+      "outer_cotton",
+      "long_johns",
+      "pants_long",
+      "socks",
+      "shoes_boot",
+      "hat",
+      "gloves",
+    ],
   },
   {
     maxWarmth: 101,
-    indoor: ["thermal_top", "long_johns", "socks"],
-    outdoor: ["sweater", "outer_down", "hat", "scarf", "gloves", "shoes_boot"],
+    outfit: [
+      "thermal_top",
+      "sweater",
+      "outer_down",
+      "long_johns",
+      "pants_long",
+      "socks",
+      "shoes_boot",
+      "hat",
+      "scarf",
+      "gloves",
+    ],
   },
 ];
 
@@ -212,16 +232,6 @@ function categoryItem(
 }
 
 function tipItem(id: string, label: string, labelEn: string): AdviceItem {
-  if (id === "diaper") {
-    return {
-      kind: "tip",
-      id,
-      label,
-      labelEn,
-      warmthValue: DIAPER_WARMTH_VALUE,
-      outfitSlot: DIAPER_OUTFIT_SLOT,
-    };
-  }
   return { kind: "tip", id, label, labelEn };
 }
 
@@ -236,23 +246,23 @@ function pickBand(requiredWarmth: number): CategoryBand {
   return WARMTH_CATEGORY_BANDS[WARMTH_CATEGORY_BANDS.length - 1]!;
 }
 
-function preferBodysuitIndoor(
-  indoor: ClothingCategory[],
+function applyAgeAppropriateBaseLayer(
+  outfit: ClothingCategory[],
   ageMonths: number
 ): ClothingCategory[] {
   if (ageMonths >= BODYSUT_PREF_MONTHS) {
-    const expanded = indoor.flatMap((c): ClothingCategory[] => {
+    const expanded = outfit.flatMap((c): ClothingCategory[] => {
       if (c === "bodysuit_short") return ["tshirt_short", "pants_short"];
       if (c === "bodysuit_long") return ["tshirt_long", "pants_long"];
       return [c];
     });
     return uniqueCategories(expanded);
   }
-  const hasBodysuit = indoor.some((c) => c.startsWith("bodysuit_"));
+  const hasBodysuit = outfit.some((c) => c.startsWith("bodysuit_"));
   if (hasBodysuit) {
-    return uniqueCategories(indoor.filter((c) => !c.startsWith("pants_")));
+    return uniqueCategories(outfit.filter((c) => !c.startsWith("pants_")));
   }
-  return uniqueCategories(indoor);
+  return uniqueCategories(outfit);
 }
 
 function sockLabels(requiredWarmth: number): { zh: string; en: string } {
@@ -288,17 +298,16 @@ function labelEnForVariant(picked: VariantSlimRow): string | undefined {
 }
 
 function hatLabels(uvIndex: number, requiredWarmth: number): { zh: string; en: string } {
-  if (uvIndex >= UV_MODERATE_THRESHOLD && requiredWarmth < 45) {
+  if (uvIndex >= UV_OUTDOOR_THRESHOLD && requiredWarmth < 45) {
     return { zh: "遮阳帽", en: "Sun Hat" };
   }
   if (requiredWarmth >= WINTER_HAT_WARMTH_THRESHOLD) return { zh: "保暖帽", en: "Warm Hat" };
   return { zh: CATEGORY_DISPLAY_LABELS.hat, en: CATEGORY_DISPLAY_LABELS_EN.hat };
 }
 
-/** Warm-day sun gear from moderate UV; high UV always eligible for hat tip. */
+/** Wearable sun gear is reserved for high UV on warm days; moderate UV stays a tip. */
 function shouldAddSunProtection(uvIndex: number, requiredWarmth: number): boolean {
-  if (uvIndex >= UV_MODERATE_THRESHOLD && requiredWarmth < 45) return true;
-  return uvIndex >= UV_OUTDOOR_THRESHOLD;
+  return uvIndex >= UV_OUTDOOR_THRESHOLD && requiredWarmth < 45;
 }
 
 function isClothingCategory(code: string): code is ClothingCategory {
@@ -316,16 +325,21 @@ function isWinterInsulatingVariant(v: VariantSlimRow): boolean {
   return false;
 }
 
-function allowsWinterFabric(categoryCode: string, requiredWarmth: number): boolean {
+function allowsWinterFabric(
+  categoryCode: string,
+  requiredWarmth: number,
+  season?: Season
+): boolean {
   if (categoryCode === "hat") return requiredWarmth >= WINTER_HAT_WARMTH_THRESHOLD;
-  return requiredWarmth >= WINTER_FABRIC_WARMTH_THRESHOLD;
+  const threshold = season === "winter" ? WINTER_FABRIC_WARMTH_THRESHOLD : 70;
+  return requiredWarmth >= threshold;
 }
 
 function collectSlotCandidates(
   variants: VariantSlimRow[],
   pool: readonly string[],
   requiredWarmth: number,
-  options?: { preferSunHat?: boolean }
+  options?: { preferSunHat?: boolean; season?: Season }
 ): VariantSlimRow[] {
   const allowed = new Set(pool);
   const inPool = variants.filter((v) => v.is_active && allowed.has(v.category_code));
@@ -338,7 +352,9 @@ function collectSlotCandidates(
   let candidates = inRange.length > 0 ? inRange : inPool;
 
   const seasonOk = candidates.filter(
-    (v) => !isWinterInsulatingVariant(v) || allowsWinterFabric(v.category_code, requiredWarmth)
+    (v) =>
+      !isWinterInsulatingVariant(v) ||
+      allowsWinterFabric(v.category_code, requiredWarmth, options?.season)
   );
   if (seasonOk.length > 0) candidates = seasonOk;
 
@@ -359,14 +375,16 @@ export function collectSlotSwapCandidates(
   pool: readonly string[],
   anchor: Pick<VariantSlimRow, "warmth_value" | "category_code">,
   requiredWarmth: number,
-  options?: { preferSunHat?: boolean }
+  options?: { preferSunHat?: boolean; season?: Season }
 ): VariantSlimRow[] {
   const allowed = new Set(pool);
   let candidates = variants.filter((v) => v.is_active && allowed.has(v.category_code));
   if (candidates.length === 0) return [];
 
   const seasonOk = candidates.filter(
-    (v) => !isWinterInsulatingVariant(v) || allowsWinterFabric(v.category_code, requiredWarmth)
+    (v) =>
+      !isWinterInsulatingVariant(v) ||
+      allowsWinterFabric(v.category_code, requiredWarmth, options?.season)
   );
   if (seasonOk.length > 0) candidates = seasonOk;
 
@@ -405,12 +423,12 @@ export function collectSlotSwapCandidates(
 /** Strict candidates for independent category/attribute selectors. Never widen on empty. */
 export function collectChecklistCandidates(
   variants: VariantSlimRow[], pool: readonly string[],
-  anchor: VariantSlimRow, requiredWarmth: number
+  anchor: VariantSlimRow, requiredWarmth: number, season?: Season
 ): VariantSlimRow[] {
   return variants.filter((v) => {
     if (!v.is_active || !pool.includes(v.category_code)) return false;
     if (!isClothingCategory(v.category_code) || !isWarmthInCategoryRange(requiredWarmth, v.category_code)) return false;
-    if (isWinterInsulatingVariant(v) && !allowsWinterFabric(v.category_code, requiredWarmth)) return false;
+    if (isWinterInsulatingVariant(v) && !allowsWinterFabric(v.category_code, requiredWarmth, season)) return false;
     // Sun protection and hats retain their weather job; a warm hat cannot replace a sun hat.
     if (anchor.category_code === "outer_uv" || v.category_code === "outer_uv") {
       if (v.category_code !== anchor.category_code) return false;
@@ -431,7 +449,12 @@ export function pickClosestVariant(
   variants: VariantSlimRow[],
   pool: readonly string[],
   targetWarmth: number,
-  options?: { preferSunHat?: boolean; rangeWarmth?: number; preferSockHeight?: string | null }
+  options?: {
+    preferSunHat?: boolean;
+    rangeWarmth?: number;
+    preferSockHeight?: string | null;
+    season?: Season;
+  }
 ): VariantSlimRow | null {
   const rangeWarmth = options?.rangeWarmth ?? targetWarmth;
   const candidates = collectSlotCandidates(variants, pool, rangeWarmth, options);
@@ -532,7 +555,7 @@ function selectVariantsForCodes(
   baby: SlotSwapBaby,
   options?: {
     preferSunHat?: boolean;
-    zone?: ChecklistWarmthZone;
+    season?: Season;
   }
 ): AdviceItem[] {
   const seenSlots = new Set<OutfitSlot>();
@@ -551,6 +574,7 @@ function selectVariantsForCodes(
       preferSunHat,
       rangeWarmth: requiredWarmth,
       preferSockHeight: slot === "socks" ? "mid_calf" : undefined,
+      season: options?.season,
     });
     if (!picked) continue;
 
@@ -562,7 +586,7 @@ function selectVariantsForCodes(
         swapPool,
         picked,
         requiredWarmth,
-        { preferSunHat }
+        { preferSunHat, season: options?.season }
       ),
       requiredWarmth: picked.warmth_value,
       baby,
@@ -578,7 +602,13 @@ function selectVariantsForCodes(
         picked.category_code as ClothingCategory
       );
     }
-    item.selectionVariants = collectChecklistCandidates(variants, swapPool, picked, requiredWarmth)
+    item.selectionVariants = collectChecklistCandidates(
+      variants,
+      swapPool,
+      picked,
+      requiredWarmth,
+      options?.season
+    )
       .map((variant) => variantToAdviceItem(variant, slot));
     items.push(item);
   }
@@ -609,49 +639,32 @@ function buildLegacyCategoryAdvice(input: {
 }): DressingAdvice {
   const { weather, ageMonths, requiredWarmth, wearsDiaper = null } = input;
   const band = pickBand(requiredWarmth);
-  const indoorCodes = preferBodysuitIndoor(band.indoor, ageMonths);
-  let outdoor = band.outdoor.filter((c) => !indoorCodes.includes(c));
+  let outfitCodes = applyAgeAppropriateBaseLayer(band.outfit, ageMonths);
   const uv = weather.uvIndex ?? 0;
 
   if (shouldAddSunProtection(uv, requiredWarmth)) {
-    if (!outdoor.includes("hat") && !indoorCodes.includes("hat")) outdoor.unshift("hat");
-    if (
-      requiredWarmth < 45 &&
-      !outdoor.includes("outer_uv") &&
-      !indoorCodes.includes("outer_uv")
-    ) {
-      outdoor = ["outer_uv", ...outdoor.filter((c) => c !== "outer_uv")];
-    }
+    outfitCodes = [
+      ...outfitCodes.filter((code) => CATEGORY_TO_SLOT[code] !== "outer"),
+      "hat",
+      "outer_uv",
+    ];
   }
-  outdoor = uniqueCategories(outdoor);
+  outfitCodes = uniqueCategories(outfitCodes);
 
-  const indoorItems: AdviceItem[] = [
-    ...(shouldRecommendDiaper(ageMonths, wearsDiaper)
-      ? [tipItem("diaper", "尿布", "Diaper")]
-      : []),
-    ...indoorCodes.map((code) => {
-      const slot = CATEGORY_TO_SLOT[code];
-      const item =
-        code === "socks"
-          ? (() => {
-              const s = sockLabels(requiredWarmth);
-              return categoryItem(code, s.zh, s.en);
-            })()
-          : categoryItem(code);
-      if (slot) item.outfitSlot = slot;
-      return item;
-    }),
-  ];
-
-  const outdoorAdditions: AdviceItem[] = outdoor.map((code) => {
+  const outfitItems: AdviceItem[] = outfitCodes.map((code) => {
     const slot = CATEGORY_TO_SLOT[code];
     const item =
-      code === "hat"
+      code === "socks"
         ? (() => {
-            const h = hatLabels(uv, requiredWarmth);
-            return categoryItem(code, h.zh, h.en);
+            const labels = sockLabels(requiredWarmth);
+            return categoryItem(code, labels.zh, labels.en);
           })()
-        : categoryItem(code);
+        : code === "hat"
+          ? (() => {
+              const labels = hatLabels(uv, requiredWarmth);
+              return categoryItem(code, labels.zh, labels.en);
+            })()
+          : categoryItem(code);
     if (slot) item.outfitSlot = slot;
     return item;
   });
@@ -666,17 +679,15 @@ function buildLegacyCategoryAdvice(input: {
     });
   }
 
-  applyOutfitIndex(indoorItems, outdoorAdditions, requiredWarmth);
+  applyOutfitIndex(outfitItems, requiredWarmth);
   return {
-    indoorItems,
-    outdoorAdditions,
+    outfitItems,
     extras,
     tags: resolveAdviceTipTags(weather),
     reason: formatAdviceConclusion({
       weather,
       requiredWarmth,
-      indoorItems,
-      outdoorAdditions,
+      outfitItems,
       ageMonths,
       wearsDiaper,
     }),
@@ -691,61 +702,34 @@ function buildVariantCategoryAdvice(input: {
   requiredWarmth: number;
   variants: VariantSlimRow[];
   baby: SlotSwapBaby;
+  season: Season;
   wearsDiaper?: boolean | null;
 }): DressingAdvice {
-  const { weather, ageMonths, requiredWarmth, variants, baby, wearsDiaper = null } = input;
+  const { weather, ageMonths, requiredWarmth, variants, baby, season, wearsDiaper = null } = input;
   const band = pickBand(requiredWarmth);
-  // Band still decides age-aware indoor category seeds (bodysuit vs tee expansion)
-  const indoorSeeds = preferBodysuitIndoor(band.indoor, ageMonths);
-  let outdoorSeeds = band.outdoor.filter((c) => !indoorSeeds.includes(c));
+  let outfitSeeds = applyAgeAppropriateBaseLayer(band.outfit, ageMonths);
   const uv = weather.uvIndex ?? 0;
 
   if (shouldAddSunProtection(uv, requiredWarmth)) {
-    if (!outdoorSeeds.includes("hat") && !indoorSeeds.includes("hat")) {
-      outdoorSeeds = ["hat", ...outdoorSeeds];
-    }
-    if (
-      requiredWarmth < 45 &&
-      !outdoorSeeds.includes("outer_uv") &&
-      !indoorSeeds.includes("outer_uv")
-    ) {
-      outdoorSeeds = ["outer_uv", ...outdoorSeeds.filter((c) => c !== "outer_uv")];
-    }
+    outfitSeeds = [
+      ...outfitSeeds.filter((code) => CATEGORY_TO_SLOT[code] !== "outer"),
+      "hat",
+      "outer_uv",
+    ];
   }
-  outdoorSeeds = uniqueCategories(outdoorSeeds);
+  outfitSeeds = uniqueCategories(outfitSeeds);
 
-  const indoorFromVariants = selectVariantsForCodes(
-    indoorSeeds,
-    variants,
-    requiredWarmth,
-    ageMonths,
-    baby,
-    { zone: "indoor" }
-  );
-  const outdoorFromVariants = selectVariantsForCodes(
-    outdoorSeeds,
+  const outfitItems = selectVariantsForCodes(
+    outfitSeeds,
     variants,
     requiredWarmth,
     ageMonths,
     baby,
     {
       preferSunHat: shouldAddSunProtection(uv, requiredWarmth) && requiredWarmth < 45,
-      zone: "outdoor",
+      season,
     }
   );
-
-  // Avoid duplicating a category that already appeared indoors
-  const indoorCats = new Set(indoorFromVariants.map((i) => i.category));
-  const outdoorAdditions = outdoorFromVariants.filter(
-    (i) => !i.category || !indoorCats.has(i.category)
-  );
-
-  const indoorItems: AdviceItem[] = [
-    ...(shouldRecommendDiaper(ageMonths, wearsDiaper)
-      ? [tipItem("diaper", "尿布", "Diaper")]
-      : []),
-    ...indoorFromVariants,
-  ];
   const rain = rainFromWeather(weather);
   const extras: AdviceExtra[] = [];
   if (rain !== "none") {
@@ -761,23 +745,21 @@ function buildVariantCategoryAdvice(input: {
   const eligibleBottoms = variants.filter((v) => v.is_active &&
     categoriesInSlot("bottom", variants).includes(v.category_code) &&
     isClothingCategory(v.category_code) && isWarmthInCategoryRange(requiredWarmth, v.category_code) &&
-    (!isWinterInsulatingVariant(v) || allowsWinterFabric(v.category_code, requiredWarmth)));
+    (!isWinterInsulatingVariant(v) || allowsWinterFabric(v.category_code, requiredWarmth, season)));
   const bottomSuggestion = eligibleBottoms.length ? selectVariantsForCodes(
-    ["pants_short"], eligibleBottoms, requiredWarmth, ageMonths, baby, { zone: "indoor" }
+    ["pants_short"], eligibleBottoms, requiredWarmth, ageMonths, baby
   )[0] : undefined;
 
-  applyOutfitIndex(indoorItems, outdoorAdditions, requiredWarmth);
+  applyOutfitIndex(outfitItems, requiredWarmth);
   return {
     bottomSuggestion,
-    indoorItems,
-    outdoorAdditions,
+    outfitItems,
     extras,
     tags: resolveAdviceTipTags(weather),
     reason: formatAdviceConclusion({
       weather,
       requiredWarmth,
-      indoorItems,
-      outdoorAdditions,
+      outfitItems,
       ageMonths,
       wearsDiaper,
     }),
@@ -787,14 +769,14 @@ function buildVariantCategoryAdvice(input: {
 }
 
 export function buildCategoryAdvice(input: BuildCategoryAdviceInput): DressingAdvice {
-  const { weather, baby, variants } = input;
+  const { weather, baby, variants, recommendedDate } = input;
   const ageMonths = babyAgeInMonths(baby.birthDate);
   const wearsDiaper = baby.wearsDiaper ?? null;
   const requiredWarmth = calcRequiredWarmth({
     weather,
     baby,
     scenario: "outdoor",
-    timeSlot: "morning",
+    timeSlot: timeSlotFromObservation(weather.observedAt),
     variant: "default",
   });
 
@@ -806,11 +788,32 @@ export function buildCategoryAdvice(input: BuildCategoryAdviceInput): DressingAd
       requiredWarmth,
       variants: activeVariants,
       baby,
+      season: seasonFromDate(recommendedDate ?? weather.observedAt),
       wearsDiaper,
     });
   }
 
   return buildLegacyCategoryAdvice({ weather, ageMonths, requiredWarmth, wearsDiaper });
+}
+
+/** Northern-hemisphere calendar season; weather remains the primary selector. */
+export function seasonFromDate(isoDate?: string): Season {
+  const monthMatch = isoDate?.match(/^\d{4}-(\d{2})-/);
+  const month = monthMatch ? Number(monthMatch[1]) : new Date().getMonth() + 1;
+  if (month >= 3 && month <= 5) return "spring";
+  if (month >= 6 && month <= 8) return "summer";
+  if (month >= 9 && month <= 11) return "autumn";
+  return "winter";
+}
+
+/** Weather providers return a local observation time; use it instead of a fixed morning bias. */
+export function timeSlotFromObservation(observedAt?: string): TimeSlot {
+  const hourMatch = observedAt?.match(/T(\d{2}):/);
+  const hour = hourMatch ? Number(hourMatch[1]) : 14;
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 22) return "evening";
+  return "night";
 }
 
 export function buildBriefAdvice(input: {

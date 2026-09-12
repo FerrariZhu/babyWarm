@@ -17,11 +17,17 @@ export type CategoryGuideEntry = {
   pros: string[];
   cautions: string[];
   sortOrder: number;
+  /** Approved visual asset resolved by the server. Omitted when an asset is not ready. */
+  imageUrl?: string;
+  imageAlt?: string;
 };
 
 export type CategoryGuideContent = {
   categoryCode: string;
   intro: string;
+  /** Approved category overview image resolved by the server. */
+  imageUrl?: string;
+  imageAlt?: string;
   styles: CategoryGuideEntry[];
   materials: CategoryGuideEntry[];
 };
@@ -32,6 +38,8 @@ export type CategoryGuideViewEntry = CategoryGuideEntry & {
 
 export type CategoryGuideView = {
   intro: string;
+  imageUrl?: string;
+  imageAlt?: string;
   styles: CategoryGuideViewEntry[];
   materials: CategoryGuideViewEntry[];
 };
@@ -91,6 +99,8 @@ export function buildCategoryGuideView(
 ): CategoryGuideView {
   return {
     intro: guide.intro,
+    imageUrl: guide.imageUrl,
+    imageAlt: guide.imageAlt,
     styles: sortGuideEntries(guide.styles, item),
     materials: sortGuideEntries(guide.materials, item),
   };
@@ -143,6 +153,54 @@ export function groupCategoryGuidesByCategory(
   guides: CategoryGuideContent[]
 ): Record<string, CategoryGuideContent> {
   return Object.fromEntries(guides.map((guide) => [guide.categoryCode, guide]));
+}
+
+export type GuideVisualAsset = {
+  categoryCode: string;
+  guideKind: "category" | "style" | "material";
+  axis?: GuideAxis;
+  value?: string;
+  imageUrl: string;
+  imageAlt: string;
+};
+
+export const CATEGORY_GUIDE_VISUAL_AXIS = "category";
+export const CATEGORY_GUIDE_VISUAL_VALUE = "overview";
+
+/** Adds only approved guide imagery while leaving unpublished entries text-only. */
+export function attachGuideVisualAssets(
+  guides: CategoryGuideContent[],
+  assets: GuideVisualAsset[]
+): CategoryGuideContent[] {
+  const categoryAssets = new Map(
+    assets
+      .filter((asset) => asset.guideKind === "category")
+      .map((asset) => [asset.categoryCode, asset])
+  );
+  const byKey = new Map(
+    assets
+      .filter((asset) => asset.guideKind !== "category" && asset.axis && asset.value)
+      .map((asset) => [
+        `${asset.categoryCode}:${asset.guideKind}:${asset.axis}:${asset.value}`,
+        asset,
+      ])
+  );
+  const attach = (categoryCode: string, guideKind: "style" | "material", entry: CategoryGuideEntry) => {
+    const asset = byKey.get(`${categoryCode}:${guideKind}:${entry.axis}:${entry.value}`);
+    return asset ? { ...entry, imageUrl: asset.imageUrl, imageAlt: asset.imageAlt } : entry;
+  };
+
+  return guides.map((guide) => {
+    const categoryAsset = categoryAssets.get(guide.categoryCode);
+    return {
+      ...guide,
+      ...(categoryAsset
+        ? { imageUrl: categoryAsset.imageUrl, imageAlt: categoryAsset.imageAlt }
+        : {}),
+      styles: guide.styles.map((entry) => attach(guide.categoryCode, "style", entry)),
+      materials: guide.materials.map((entry) => attach(guide.categoryCode, "material", entry)),
+    };
+  });
 }
 
 export type GuideCategoryCode = ClothingCategory;

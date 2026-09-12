@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: ["@warmrobot/core"],
   outputFileTracingRoot: path.join(rootDir, ".."),
 };

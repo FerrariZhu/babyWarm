@@ -1,6 +1,5 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -18,8 +17,7 @@ export function AdminSignOutLink({
   const router = useRouter();
 
   async function handleClick() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/sign-out", { method: "POST" });
     router.push(`/login?next=${encodeURIComponent(next)}`);
     router.refresh();
   }

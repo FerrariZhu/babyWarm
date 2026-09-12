@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  useCallback,
   type ReactNode,
 } from "react";
 import type {
@@ -28,7 +27,6 @@ import {
   formatAdviceConclusion,
   formatAdviceConclusionBlocks,
   resolveCategoryIcon,
-  shouldRecommendDiaper,
   shouldShowDiaperPrompt,
   type ChecklistDisplayChip,
   type DiaperPromptState,
@@ -36,6 +34,7 @@ import {
 import { AddBabyChecklistPrompt } from "./add-baby-checklist-prompt";
 import { AdviceConclusionPanel, AdviceTips } from "./advice-conclusion-panel";
 import { CategoryStyleSheet } from "./category-style-sheet";
+import { pencilGarmentIcon } from "@/lib/pencil-icons";
 import { MaterialIcon } from "./material-icon";
 import { GarmentChoicePicker } from "./garment-choice-picker";
 import { SaveDressingRecordButton } from "./save-dressing-record-button";
@@ -44,10 +43,8 @@ import { SaveDressingRecordButton } from "./save-dressing-record-button";
 const COPY = {
   adviceTitle: "穿搭建议",
   checklistTitle: "穿搭清单",
-  indoorHeading: "家里穿",
-  outdoorHeading: "出门再加",
+  outfitHeading: "今日穿搭",
   extrasHeading: "记得带",
-  emptyOutdoor: "出门不用再加衣服。",
   swapLabel: "自选",
 } as const;
 
@@ -70,30 +67,38 @@ function cardKey(item: AdviceItem, index: number): string {
 
 function BentoCard({ item, zone, categoryIcons, onOpen, onSelectItem }: {
   item: AdviceItem;
-  zone: "indoor" | "outdoor" | "extra";
+  zone: "outfit" | "extra";
   categoryIcons?: Record<string, CategoryIconMeta>;
   onOpen?: () => void;
   onSelectItem?: (selected: AdviceItem) => void;
 }) {
   const categories = checklistCategoryChoices(item);
-  const well = zone === "indoor" ? "bg-indoor-surface" : zone === "outdoor" ? "bg-outdoor-surface" : "bg-clothing-extra/15";
-  const iconColor = zone === "indoor" ? "text-tertiary" : zone === "outdoor" ? "text-primary" : "text-clothing-extra";
+  const well = zone === "outfit" ? "bg-outdoor-surface" : "bg-clothing-extra/15";
+  const iconColor = zone === "outfit" ? "text-primary" : "text-clothing-extra";
   return (
-    <div className="garment-card group/card relative flex flex-col rounded-xl p-2.5">
-      <div className="mb-0.5 flex min-h-10 items-center justify-between gap-1.5">
+    <article className="garment-card group/card relative flex flex-col">
+      <header className="garment-card-header">
         {(item.kind === "category" || (item.kind === "tip" && item.id === "diaper")) && item.warmthValue != null ? (
-          <span className="rounded-full border border-outline-variant/30 bg-surface-container px-2 py-0.5 font-label-sm tabular-nums text-on-surface-variant">
+          <span className="garment-warmth-badge tabular-nums">
             指数 {item.warmthValue}
           </span>
         ) : <span />}
-        {onSelectItem && categories.length > 1 ? (
-          <GarmentChoicePicker label="品类" garment={item.label} value={item.category ?? ""}
-            choices={categories} onSelect={onSelectItem} iconOnly />
+        {onOpen ? (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-haspopup="dialog"
+            aria-label={`查看${item.label}款式说明`}
+            className="garment-guide-trigger"
+          >
+            <MaterialIcon name="chevron_right" />
+          </button>
         ) : null}
-      </div>
+      </header>
       <CardBody item={item} categoryIcons={categoryIcons} well={well} iconColor={iconColor}
-        chips={checklistDisplayChips(item)} showPros={Boolean(item.pros)} onOpen={onOpen} onSelectItem={onSelectItem} />
-    </div>
+        chips={checklistDisplayChips(item)} showPros={Boolean(item.pros)} onSelectItem={onSelectItem}
+        categoryChoices={categories} />
+    </article>
   );
 }
 
@@ -127,8 +132,8 @@ function CardBody({
   iconColor,
   chips,
   showPros,
-  onOpen,
   onSelectItem,
+  categoryChoices,
 }: {
   item: AdviceItem;
   categoryIcons?: Record<string, CategoryIconMeta>;
@@ -136,48 +141,57 @@ function CardBody({
   iconColor: string;
   chips: ChecklistDisplayChip[];
   showPros: boolean;
-  onOpen?: () => void;
   onSelectItem?: (selected: AdviceItem) => void;
+  categoryChoices: ReturnType<typeof checklistCategoryChoices>;
 }) {
   const icon = resolveCategoryIcon(item, categoryIcons);
-  const identity = (
-    <span className="flex min-w-0 items-center justify-center gap-4">
-      <span className="flex shrink-0">
-        <span className={`garment-picture flex items-center justify-center transition-colors ${well}`}>
-          {icon.iconUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={icon.iconUrl} alt="" className="h-6 w-6 object-contain" />
-          ) : (
-            <MaterialIcon name={icon.iconKey} className={`text-[22px] font-light ${iconColor}`} />
-          )}
-        </span>
-      </span>
-      <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
-        <span className={`font-label-md leading-snug text-on-surface ${onOpen ? "min-h-5" : ""}`}>{item.label}</span>
-        {item.labelEn ? (
-          <span className="font-label-sm font-normal leading-snug tracking-[0.02em] text-text-soft">{item.labelEn}</span>
-        ) : null}
-      </span>
-    </span>
-  );
+  const pencilIcon = pencilGarmentIcon(icon.iconKey);
 
   return (
-    <div className="flex w-full flex-col">
-      {onOpen ? (
-        <button type="button" onClick={onOpen} aria-haspopup="dialog" aria-label={`查看${item.label}款式说明`}
-          className="flex w-full min-w-0 flex-col rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-          {identity}
-        </button>
-      ) : <div className="flex w-full min-w-0 flex-col">{identity}</div>}
-      <div className="mt-0.5 flex w-full flex-col items-center">
-        <AxisChips chips={chips} item={item} onSelectItem={onSelectItem} />
+    <div className={`garment-card-layout ${chips.length === 0 ? "garment-card-layout--simple" : ""}`}>
+      <span className={`garment-picture flex items-center justify-center transition-colors ${well}`}>
+        {icon.iconUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={icon.iconUrl} alt="" className="h-6 w-6 object-contain" />
+        ) : pencilIcon ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={pencilIcon} alt="" className="garment-pencil-icon" />
+        ) : (
+          <MaterialIcon name={icon.iconKey} className={`text-[22px] font-light ${iconColor}`} />
+        )}
+      </span>
+
+      <div className="garment-card-identity">
+        <div className="garment-title-row">
+          <h5 className="garment-card-title">{item.label}</h5>
+          {onSelectItem && categoryChoices.length > 1 ? (
+            <span className="garment-category-swap">
+              <GarmentChoicePicker
+                label="品类"
+                garment={item.label}
+                value={item.category ?? ""}
+                choices={categoryChoices}
+                onSelect={onSelectItem}
+                iconOnly
+                iconName="swap_horiz"
+              />
+            </span>
+          ) : null}
+        </div>
+        {item.labelEn ? (
+          <p className="garment-card-subtitle">{item.labelEn}</p>
+        ) : null}
       </div>
 
+      {chips.length > 0 ? (
+        <div className="garment-card-attribute-panel">
+          <AxisChips chips={chips} item={item} onSelectItem={onSelectItem} />
+        </div>
+      ) : null}
+
       {showPros && item.pros ? (
-        <div className="mt-1 w-full border-t border-outline-variant/20 pt-1">
-          <p className="font-label-sm leading-snug text-on-surface-variant text-center">
-            {item.pros}
-          </p>
+        <div className="garment-card-summary">
+          <p>{item.pros}</p>
         </div>
       ) : null}
     </div>
@@ -216,9 +230,9 @@ function BentoSection({
   children: ReactNode;
 }) {
   return (
-    <div className="outfit-group flex flex-col gap-2" data-zone={heading === COPY.indoorHeading ? "indoor" : heading === COPY.outdoorHeading ? "outdoor" : "extra"}>
+    <div className="outfit-group flex flex-col gap-2" data-zone={heading === COPY.outfitHeading ? "outfit" : "extra"}>
       <h4 className="font-label-md text-on-surface">{heading}</h4>
-      <div className="grid grid-cols-2 gap-stack-gap overflow-visible">{children}</div>
+      <div className="grid grid-cols-1 gap-stack-gap overflow-visible">{children}</div>
     </div>
   );
 }
@@ -227,7 +241,7 @@ function BentoSection({
  * Home modules below 天气模块:
  * 1) 穿搭建议 — conclusion paragraph
  * 2) 出门小贴士 — contextual UV / rain / accessory reminders
- * 3) 穿搭清单 — indoor / outdoor / extras
+ * 3) 穿搭清单 — one complete outdoor outfit + non-wearable reminders
  * Compact weather tip tags also live in WeatherWidget.
  */
 export function DailyAdviceSection({
@@ -242,7 +256,7 @@ export function DailyAdviceSection({
   advice: BriefAdvice;
   /** Real-time weather for structured advice copy. */
   weather: HomeDailyBriefWeather;
-  /** When false, show add-baby prompt instead of indoor/outdoor/extras lists. */
+  /** When false, show add-baby prompt instead of the outfit and reminders. */
   showChecklist?: boolean;
   /** Parent-facing clothing guide content keyed by category code. */
   categoryGuideByCategory?: Record<string, CategoryGuideContent>;
@@ -264,10 +278,7 @@ export function DailyAdviceSection({
 }) {
   const source = advice.current;
   const outfitSeed = adviceFingerprint(source);
-  const [indoorItems, setIndoorItems] = useState(() => source.indoorItems ?? []);
-  const [outdoorAdditions, setOutdoorAdditions] = useState(
-    () => source.outdoorAdditions ?? []
-  );
+  const [outfitItems, setOutfitItems] = useState(() => source.outfitItems ?? []);
   const [reason, setReason] = useState(source.reason ?? "");
   const [sheetItem, setSheetItem] = useState<AdviceItem | null>(null);
   const [selectionNotice, setSelectionNotice] = useState("");
@@ -295,18 +306,9 @@ export function DailyAdviceSection({
       })
   );
 
-  const filterDiaperItems = useCallback(
-    (items: AdviceItem[]) => {
-      if (shouldRecommendDiaper(ageMonths, wearsDiaper)) return items;
-      return items.filter((item) => !(item.kind === "tip" && item.id === "diaper"));
-    },
-    [ageMonths, wearsDiaper]
-  );
-
   useEffect(() => {
-    const nextIndoor = source.indoorItems ?? [];
-    setIndoorItems(nextIndoor);
-    setOutdoorAdditions(source.outdoorAdditions ?? []);
+    const nextOutfit = source.outfitItems ?? [];
+    setOutfitItems(nextOutfit);
     setSelectionNotice("");
     setPendingSelection(null);
     setOutfitRevision((revision) => revision + 1);
@@ -314,34 +316,26 @@ export function DailyAdviceSection({
       formatAdviceConclusion({
         weather: weatherForConclusion(weather),
         requiredWarmth: source.requiredWarmth,
-        indoorItems: filterDiaperItems(nextIndoor),
-        outdoorAdditions: source.outdoorAdditions ?? [],
+        outfitItems: nextOutfit,
         ageMonths,
         wearsDiaper,
       })
     );
-  }, [outfitSeed, wearsDiaper, ageMonths, weather, source.requiredWarmth, source.outdoorAdditions, filterDiaperItems]);
-
-  useEffect(() => {
-    if (wearsDiaper === false) {
-      setIndoorItems((items) =>
-        items.filter((item) => !(item.kind === "tip" && item.id === "diaper"))
-      );
-    }
-  }, [wearsDiaper]);
+  }, [outfitSeed, wearsDiaper, ageMonths, weather, source.requiredWarmth, source.outfitItems]);
 
   function openForCategory(item: AdviceItem) {
     if (item.kind !== "category" || !item.category) return;
     setSheetItem(item);
   }
 
-  function applySwapAt(
-    zone: "indoor" | "outdoor",
-    index: number,
-    selected: AdviceItem
-  ) {
-    commitSelection({ indoorItems, outdoorAdditions, zone, index, selected,
-      requiredWarmth: source.requiredWarmth, bottomSuggestion: source.bottomSuggestion });
+  function applySwapAt(index: number, selected: AdviceItem) {
+    commitSelection({
+      outfitItems,
+      index,
+      selected,
+      requiredWarmth: source.requiredWarmth,
+      bottomSuggestion: source.bottomSuggestion,
+    });
   }
 
   function commitSelection(input: CompleteSelectionInput) {
@@ -353,17 +347,14 @@ export function DailyAdviceSection({
     }
     setPendingSelection(null);
     if (result.error) return;
-    const nextIndoor = result.indoorItems;
-    const nextOutdoor = result.outdoorAdditions;
-    setIndoorItems(nextIndoor);
-    setOutdoorAdditions(nextOutdoor);
+    const nextOutfit = result.outfitItems;
+    setOutfitItems(nextOutfit);
     if (saveContext) {
       setReason(
         formatAdviceConclusion({
           weather: weatherForConclusion(saveContext.weather),
           requiredWarmth: source.requiredWarmth,
-          indoorItems: nextIndoor,
-          outdoorAdditions: nextOutdoor,
+          outfitItems: nextOutfit,
           ageMonths,
           wearsDiaper,
         })
@@ -372,26 +363,19 @@ export function DailyAdviceSection({
     setOutfitRevision((revision) => revision + 1);
   }
 
-  const filteredIndoorItems = useMemo(
-    () => filterDiaperItems(indoorItems),
-    [indoorItems, ageMonths, wearsDiaper, filterDiaperItems]
-  );
-
   const conclusionBlocks = useMemo(
     () =>
       formatAdviceConclusionBlocks({
         weather: weatherForConclusion(weather),
         requiredWarmth: source.requiredWarmth,
-        indoorItems: filteredIndoorItems,
-        outdoorAdditions,
+        outfitItems,
         ageMonths,
         wearsDiaper,
       }),
     [
       weather,
       source.requiredWarmth,
-      filteredIndoorItems,
-      outdoorAdditions,
+      outfitItems,
       ageMonths,
       wearsDiaper,
     ]
@@ -400,17 +384,11 @@ export function DailyAdviceSection({
   function handleDiaperPromptAnswered(nextWearsDiaper: boolean) {
     setWearsDiaper(nextWearsDiaper);
     setPromptDismissed(true);
-    if (!nextWearsDiaper) {
-      setIndoorItems((items) =>
-        items.filter((item) => !(item.kind === "tip" && item.id === "diaper"))
-      );
-    }
   }
 
   const liveCurrent: DressingAdvice = {
     ...source,
-    indoorItems: filteredIndoorItems,
-    outdoorAdditions,
+    outfitItems,
     reason,
   };
   const liveAdvice: BriefAdvice = { ...advice, current: liveCurrent };
@@ -421,7 +399,7 @@ export function DailyAdviceSection({
       : undefined;
 
   return (
-    <section className="flex flex-col gap-section-spacing" aria-label="穿搭建议与清单">
+    <section data-analytics-module="daily_advice" className="flex flex-col gap-section-spacing" aria-label="穿搭建议与清单">
       <div
         className="advice-surface"
         aria-label="穿搭建议"
@@ -440,9 +418,11 @@ export function DailyAdviceSection({
         )}
       </div>
 
-      <AdviceTips blocks={conclusionBlocks} />
+      <div data-analytics-module="advice_tips">
+        <AdviceTips blocks={conclusionBlocks} />
+      </div>
 
-      <div className="outfit-checklist flex flex-col gap-stack-gap" aria-label="穿搭清单">
+      <div data-analytics-module="outfit_checklist" className="outfit-checklist flex flex-col gap-stack-gap" aria-label="穿搭清单">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h3 className="font-headline-md text-on-surface">{COPY.checklistTitle}</h3>
           {showChecklist && saveContext ? (
@@ -473,14 +453,12 @@ export function DailyAdviceSection({
                   onClick={() => { setPendingSelection(null); setSelectionNotice("已取消切换"); }}>取消切换</button>
               </div>
             ) : null}
-            <BentoSection heading={COPY.indoorHeading}>
-              {filteredIndoorItems.map((item) => {
-                const index = indoorItems.indexOf(item);
-                return (
+            <BentoSection heading={COPY.outfitHeading}>
+              {outfitItems.map((item, index) => (
                 <BentoCard
-                  key={cardKey(item, index >= 0 ? index : 0)}
+                  key={cardKey(item, index)}
                   item={item}
-                  zone="indoor"
+                  zone="outfit"
                   categoryIcons={categoryIcons}
                   onOpen={
                     item.kind === "category" && item.category
@@ -488,40 +466,12 @@ export function DailyAdviceSection({
                       : undefined
                   }
                   onSelectItem={
-                    item.kind === "category" && index >= 0
-                      ? (selected) => applySwapAt("indoor", index, selected)
+                    item.kind === "category"
+                      ? (selected) => applySwapAt(index, selected)
                       : undefined
                   }
                 />
-                );
-              })}
-            </BentoSection>
-
-            <BentoSection heading={COPY.outdoorHeading}>
-              {outdoorAdditions.length === 0 ? (
-                <p className="font-body-md col-span-2 text-on-surface-variant">
-                  {COPY.emptyOutdoor}
-                </p>
-              ) : (
-                outdoorAdditions.map((item, index) => (
-                  <BentoCard
-                    key={cardKey(item, index)}
-                    item={item}
-                    zone="outdoor"
-                    categoryIcons={categoryIcons}
-                    onOpen={
-                      item.kind === "category" && item.category
-                        ? () => openForCategory(item)
-                        : undefined
-                    }
-                    onSelectItem={
-                      item.kind === "category"
-                        ? (selected) => applySwapAt("outdoor", index, selected)
-                        : undefined
-                    }
-                  />
-                ))
-              )}
+              ))}
             </BentoSection>
 
             {liveCurrent.extras.length > 0 && (

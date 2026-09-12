@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
 import { localRecommendedDate } from "@/lib/daily-brief/format";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
+import { queryOne, query } from "@/lib/self-hosted/database";
 
 type DiaperPromptAction = "shown" | "answer";
 type DiaperPromptAnswer = "yes" | "no";
@@ -14,15 +15,11 @@ function isDiaperPromptAnswer(value: string): value is DiaperPromptAnswer {
   return value === "yes" || value === "no";
 }
 
-async function invalidateTodayBrief(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  babyId: string
-) {
-  await supabase
-    .from("home_daily_briefs")
-    .delete()
-    .eq("baby_id", babyId)
-    .eq("recommended_date", localRecommendedDate());
+async function invalidateTodayBrief(babyId: string) {
+  await query(
+    "DELETE FROM public.home_daily_briefs WHERE baby_id = $1 AND recommended_date = $2",
+    [babyId, localRecommendedDate()]
+  );
 }
 
 export async function POST(
@@ -30,10 +27,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: babyId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = await parseJsonBody<Record<string, unknown>>(request);
@@ -47,17 +41,13 @@ export async function POST(
   const now = new Date().toISOString();
 
   if (action === "shown") {
-    const { data, error } = await supabase
-      .from("babies")
-      .update({ diaper_prompt_last_shown_at: now })
-      .eq("id", babyId)
-      .eq("user_id", user.id)
-      .select("id, diaper_prompt_last_shown_at")
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const data = await queryOne<{ id: string; diaper_prompt_last_shown_at: string | null }>(
+      `UPDATE public.babies SET diaper_prompt_last_shown_at = $1, updated_at = now()
+        WHERE id = $2 AND user_id = $3
+        RETURNING id, diaper_prompt_last_shown_at`,
+      [now, babyId, user.id]
+    );
+    if (!data) return NextResponse.json({ error: "找不到宝宝档案" }, { status: 404 });
     return NextResponse.json(data);
   }
 
@@ -67,26 +57,23 @@ export async function POST(
   }
 
   const wearsDiaper = answer === "yes";
-  const { data, error } = await supabase
-    .from("babies")
-    .update({
-      wears_diaper: wearsDiaper,
-      diaper_prompt_last_answer: answer,
-      diaper_prompt_last_answered_at: now,
-      diaper_prompt_last_shown_at: now,
-    })
-    .eq("id", babyId)
-    .eq("user_id", user.id)
-    .select(
-      "id, wears_diaper, diaper_prompt_last_answer, diaper_prompt_last_answered_at, diaper_prompt_last_shown_at"
-    )
-    .single();
+  const data = await queryOne<{
+    id: string;
+    wears_diaper: boolean | null;
+    diaper_prompt_last_answer: DiaperPromptAnswer | null;
+    diaper_prompt_last_answered_at: string | null;
+    diaper_prompt_last_shown_at: string | null;
+  }>(
+    `UPDATE public.babies
+        SET wears_diaper = $1, diaper_prompt_last_answer = $2,
+            diaper_prompt_last_answered_at = $3, diaper_prompt_last_shown_at = $3, updated_at = now()
+      WHERE id = $4 AND user_id = $5
+      RETURNING id, wears_diaper, diaper_prompt_last_answer, diaper_prompt_last_answered_at, diaper_prompt_last_shown_at`,
+    [wearsDiaper, answer, now, babyId, user.id]
+  );
+  if (!data) return NextResponse.json({ error: "找不到宝宝档案" }, { status: 404 });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  await invalidateTodayBrief(supabase, babyId);
+  await invalidateTodayBrief(babyId);
 
   return NextResponse.json(data);
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchWeather, type WeatherResult } from "@warmrobot/core";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
+import { query } from "@/lib/self-hosted/database";
 
 const cachedFetch: typeof fetch = (input, init) =>
   fetch(input, { ...init, next: { revalidate: 1800 } });
@@ -16,10 +17,7 @@ function isValidCoord(value: unknown): value is number {
  * 逆地理 / 正地理 → 拉天气 → 写入 profiles
  */
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -54,18 +52,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      city: weather.location.name,
-      latitude: weather.location.latitude,
-      longitude: weather.location.longitude,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", user.id);
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  try {
+    await query(
+      `INSERT INTO public.profiles (id, city, latitude, longitude)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE
+         SET city = EXCLUDED.city, latitude = EXCLUDED.latitude,
+             longitude = EXCLUDED.longitude, updated_at = now()`,
+      [user.id, weather.location.name, weather.location.latitude, weather.location.longitude]
+    );
+  } catch (error) {
+    console.error("[profile/location]", error);
+    return NextResponse.json({ error: "保存地点失败" }, { status: 500 });
   }
 
   return NextResponse.json(weather);

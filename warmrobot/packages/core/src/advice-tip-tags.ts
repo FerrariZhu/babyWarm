@@ -8,6 +8,7 @@ import { rainFromWeather } from "./advice-copy";
 import type { WeatherSnapshot } from "./types";
 import {
   PRECIP_PROBABILITY_THRESHOLD,
+  UV_MODERATE_THRESHOLD,
   UV_OUTDOOR_THRESHOLD,
   WIND_SPEED_WARMTH_THRESHOLD,
 } from "./warmth-thresholds";
@@ -65,7 +66,7 @@ export const ADVICE_TIP_TAG_DEFS: Record<AdviceTipTagCode, AdviceTipTagDef> = {
     label: "注意防晒",
     tone: "uv",
     weatherMetric: "uv_index",
-    threshold: UV_OUTDOOR_THRESHOLD,
+    threshold: UV_MODERATE_THRESHOLD,
     sortOrder: 10,
   },
   bring_umbrella: {
@@ -105,7 +106,7 @@ export function evaluateTipTag(
   const def = tipTagMeta(code);
   switch (def.weatherMetric) {
     case "uv_index": {
-      const threshold = def.threshold ?? UV_OUTDOOR_THRESHOLD;
+      const threshold = def.threshold ?? UV_MODERATE_THRESHOLD;
       return (weather.uvIndex ?? 0) >= threshold;
     }
     case "rain": {

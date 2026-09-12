@@ -1,5 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
@@ -8,7 +11,7 @@ import {
   type CategoryProductLink,
   type OutfitSlot,
 } from "@/lib/admin/category-types";
-import { createServiceClient } from "@/lib/supabase/service";
+import { clientQuery, query, queryOne, transaction } from "@/lib/self-hosted/database";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -45,6 +48,32 @@ type LinkRow = {
   is_active: boolean;
 };
 
+const CATEGORY_SELECT =
+  "id, code, name_zh, name_en, outfit_slot, warmth_min, warmth_max, icon_key, icon_url, sort_order, is_active";
+const LINK_SELECT = "id, category_id, url, title, sort_order, is_active";
+const CATEGORY_ICON_MAX_BYTES = 2 * 1024 * 1024;
+function categoryIconDirectory() {
+  const root = process.env.GUIDE_ASSET_DIR?.trim() || "/var/lib/warmrobot/guide-assets";
+  return path.join(root, "category-icons");
+}
+
+function publicWebUrl() {
+  return (process.env.NEXT_PUBLIC_WEB_APP_URL?.trim() || "http://localhost:3000").replace(/\/$/, "");
+}
+
+function verifiedImageType(bytes: Uint8Array): { mimeType: string; extension: string } | null {
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") {
+    return { mimeType: "image/webp", extension: "webp" };
+  }
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) {
+    return { mimeType: "image/png", extension: "png" };
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return { mimeType: "image/jpeg", extension: "jpg" };
+  }
+  return null;
+}
+
 function mapCategory(row: CategoryRow, links: LinkRow[]): AdminCategory {
   return {
     id: row.id,
@@ -78,26 +107,11 @@ export async function listAdminCategories(): Promise<ActionResult<AdminCategory[
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    const { data: rows, error } = await supabase
-      .from("categories")
-      .select(
-        "id, code, name_zh, name_en, outfit_slot, warmth_min, warmth_max, icon_key, icon_url, sort_order, is_active"
-      )
-      .order("sort_order", { ascending: true });
-
-    if (error) return { ok: false, error: error.message };
-
-    const { data: links, error: linkError } = await supabase
-      .from("category_product_links")
-      .select("id, category_id, url, title, sort_order, is_active")
-      .order("sort_order", { ascending: true });
-
-    if (linkError) return { ok: false, error: linkError.message };
-
-    const list = (rows as CategoryRow[]).map((row) =>
-      mapCategory(row, (links as LinkRow[]) ?? [])
-    );
+    const [rows, links] = await Promise.all([
+      query<CategoryRow>(`SELECT ${CATEGORY_SELECT} FROM public.categories ORDER BY sort_order ASC`),
+      query<LinkRow>(`SELECT ${LINK_SELECT} FROM public.category_product_links ORDER BY sort_order ASC`),
+    ]);
+    const list = rows.map((row) => mapCategory(row, links));
     return { ok: true, data: list };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "加载失败" };
@@ -137,70 +151,38 @@ export async function createCategory(
   }
 
   try {
-    const supabase = createServiceClient();
-    const { data: maxSort } = await supabase
-      .from("categories")
-      .select("sort_order")
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const sort_order = (maxSort?.sort_order ?? 0) + 1;
     const warmthMid = Math.round((input.warmth_min + input.warmth_max) / 2);
-
-    const { data, error } = await supabase
-      .from("categories")
-      .insert({
-        code,
-        name_zh,
-        name_en,
-        outfit_slot: input.outfit_slot,
-        warmth_min: input.warmth_min,
-        warmth_max: input.warmth_max,
-        icon_key: input.icon_key?.trim() || null,
-        icon_url: input.icon_url?.trim() || null,
-        sort_order,
-        is_active: true,
-        layer_order: 1,
-        coverage_multiplier: 1,
-        warmth_bonus: 0,
-      })
-      .select(
-        "id, code, name_zh, name_en, outfit_slot, warmth_min, warmth_max, icon_key, icon_url, sort_order, is_active"
-      )
-      .single();
-
-    if (error) return { ok: false, error: error.message };
-
-    // Seed one default garment variant so the category appears in 细类型清单
-    const { error: variantError } = await supabase.from("garment_variants").insert({
-      category_id: data.id,
-      category_code: code,
-      material: null,
-      fill_type: null,
-      thickness: null,
-      fit_type: "regular",
-      bodysuit_style: null,
-      pant_length: null,
-      sock_height: null,
-      warmth_value: warmthMid,
-      admin_label: name_zh,
-      consumer_label: name_zh,
-      consumer_label_en: name_en?.trim() || name_zh,
-      consumer_tags: [],
-      is_active: true,
-      sort_order: 0,
+    const data = await transaction(async (client) => {
+      const maxSort = (await clientQuery<{ sort_order: number }>(
+        client,
+        "SELECT sort_order FROM public.categories ORDER BY sort_order DESC LIMIT 1"
+      ))[0];
+      const rows = await clientQuery<CategoryRow>(
+        client,
+        `INSERT INTO public.categories
+          (code, name_zh, name_en, outfit_slot, warmth_min, warmth_max, icon_key, icon_url,
+           sort_order, is_active, layer_order, coverage_multiplier, warmth_bonus)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, 1, 1, 0)
+         RETURNING ${CATEGORY_SELECT}`,
+        [code, name_zh, name_en, input.outfit_slot, input.warmth_min, input.warmth_max,
+          input.icon_key?.trim() || null, input.icon_url?.trim() || null, (maxSort?.sort_order ?? 0) + 1]
+      );
+      const category = rows[0];
+      if (!category) throw new Error("创建品类失败");
+      await client.query(
+        `INSERT INTO public.garment_variants
+          (category_id, category_code, material, fill_type, thickness, fit_type,
+           bodysuit_style, pant_length, sock_height, warmth_value, admin_label,
+           consumer_label, consumer_label_en, consumer_tags, is_active, sort_order)
+         VALUES ($1, $2, NULL, NULL, NULL, 'regular', NULL, NULL, NULL, $3, $4, $4, $5, $6, true, 0)`,
+        [category.id, code, warmthMid, name_zh, name_en || name_zh, []]
+      );
+      return category;
     });
-
-    if (variantError) {
-      // Roll back category if seed fails
-      await supabase.from("categories").delete().eq("id", data.id);
-      return { ok: false, error: `品类已创建但细类型种子失败：${variantError.message}` };
-    }
 
     revalidatePath("/admin/categories");
     revalidatePath("/admin/variants");
-    return { ok: true, data: mapCategory(data as CategoryRow, []) };
+    return { ok: true, data: mapCategory(data, []) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "创建失败" };
   }
@@ -224,67 +206,65 @@ export async function updateCategory(
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
-  const patch: Record<string, unknown> = {};
+  const patch: Array<{ column: string; value: unknown }> = [];
   if (input.name_zh !== undefined) {
     const name_zh = input.name_zh.trim();
     if (!name_zh) return { ok: false, error: "中文名称不能为空" };
-    patch.name_zh = name_zh;
+    patch.push({ column: "name_zh", value: name_zh });
   }
   if (input.name_en !== undefined) {
-    patch.name_en = input.name_en?.trim() || null;
+    patch.push({ column: "name_en", value: input.name_en?.trim() || null });
   }
   if (input.outfit_slot !== undefined) {
     if (!input.outfit_slot) return { ok: false, error: "必须选择穿搭槽位" };
-    patch.outfit_slot = input.outfit_slot;
+    patch.push({ column: "outfit_slot", value: input.outfit_slot });
   }
-  if (input.warmth_min !== undefined) patch.warmth_min = input.warmth_min;
-  if (input.warmth_max !== undefined) patch.warmth_max = input.warmth_max;
-  if (input.icon_key !== undefined) patch.icon_key = input.icon_key?.trim() || null;
-  if (input.icon_url !== undefined) patch.icon_url = input.icon_url?.trim() || null;
-  if (input.is_active !== undefined) patch.is_active = input.is_active;
+  if (input.warmth_min !== undefined) patch.push({ column: "warmth_min", value: input.warmth_min });
+  if (input.warmth_max !== undefined) patch.push({ column: "warmth_max", value: input.warmth_max });
+  if (input.icon_key !== undefined) patch.push({ column: "icon_key", value: input.icon_key?.trim() || null });
+  if (input.icon_url !== undefined) patch.push({ column: "icon_url", value: input.icon_url?.trim() || null });
+  if (input.is_active !== undefined) patch.push({ column: "is_active", value: input.is_active });
 
-  if (Object.keys(patch).length === 0) {
+  if (patch.length === 0) {
     return { ok: false, error: "无更新字段" };
   }
 
   try {
-    const supabase = createServiceClient();
-
-    if (patch.warmth_min !== undefined || patch.warmth_max !== undefined) {
-      const { data: current } = await supabase
-        .from("categories")
-        .select("warmth_min, warmth_max")
-        .eq("id", input.id)
-        .single();
+    const warmthMinPatch = patch.find((entry) => entry.column === "warmth_min")?.value;
+    const warmthMaxPatch = patch.find((entry) => entry.column === "warmth_max")?.value;
+    if (warmthMinPatch !== undefined || warmthMaxPatch !== undefined) {
+      const current = await queryOne<{ warmth_min: number; warmth_max: number }>(
+        "SELECT warmth_min, warmth_max FROM public.categories WHERE id = $1",
+        [input.id]
+      );
       if (!current) return { ok: false, error: "品类不存在" };
-      const min = Number(patch.warmth_min ?? current.warmth_min);
-      const max = Number(patch.warmth_max ?? current.warmth_max);
+      const min = Number(warmthMinPatch ?? current.warmth_min);
+      const max = Number(warmthMaxPatch ?? current.warmth_max);
       if (min < 0 || max > 100 || min > max) {
         return { ok: false, error: "保温区间须在 0–100 且 min ≤ max" };
       }
     }
 
-    const { data, error } = await supabase
-      .from("categories")
-      .update(patch)
-      .eq("id", input.id)
-      .select(
-        "id, code, name_zh, name_en, outfit_slot, warmth_min, warmth_max, icon_key, icon_url, sort_order, is_active"
-      )
-      .single();
-
-    if (error) return { ok: false, error: error.message };
-
-    const { data: links } = await supabase
-      .from("category_product_links")
-      .select("id, category_id, url, title, sort_order, is_active")
-      .eq("category_id", input.id);
+    const values = patch.map((entry) => entry.value);
+    const assignments = patch.map((entry, index) => `${entry.column} = $${index + 1}`);
+    const data = await queryOne<CategoryRow>(
+      `UPDATE public.categories
+          SET ${assignments.join(", ")}, updated_at = now()
+        WHERE id = $${values.length + 1}
+        RETURNING ${CATEGORY_SELECT}`,
+      [...values, input.id]
+    );
+    if (!data) return { ok: false, error: "品类不存在" };
+    const links = await query<LinkRow>(
+      `SELECT ${LINK_SELECT} FROM public.category_product_links WHERE category_id = $1 ORDER BY sort_order ASC`,
+      [input.id]
+    );
 
     revalidatePath("/admin/categories");
     revalidatePath("/admin/variants");
     return {
       ok: true,
-      data: mapCategory(data as CategoryRow, (links as LinkRow[]) ?? []),
+      data: mapCategory(data, links),
     };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "更新失败" };
@@ -316,28 +296,17 @@ export async function addProductLink(
   }
 
   try {
-    const supabase = createServiceClient();
-    const { data: maxSort } = await supabase
-      .from("category_product_links")
-      .select("sort_order")
-      .eq("category_id", categoryId)
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const { data, error } = await supabase
-      .from("category_product_links")
-      .insert({
-        category_id: categoryId,
-        url: trimmed,
-        title: title?.trim() || null,
-        sort_order: (maxSort?.sort_order ?? 0) + 1,
-        is_active: true,
-      })
-      .select("id, url, title, sort_order, is_active")
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+    const maxSort = await queryOne<{ sort_order: number }>(
+      "SELECT sort_order FROM public.category_product_links WHERE category_id = $1 ORDER BY sort_order DESC LIMIT 1",
+      [categoryId]
+    );
+    const data = await queryOne<LinkRow>(
+      `INSERT INTO public.category_product_links (category_id, url, title, sort_order, is_active)
+       VALUES ($1, $2, $3, $4, true)
+       RETURNING ${LINK_SELECT}`,
+      [categoryId, trimmed, title?.trim() || null, (maxSort?.sort_order ?? 0) + 1]
+    );
+    if (!data) return { ok: false, error: "添加失败" };
 
     revalidatePath("/admin/categories");
     return {
@@ -360,12 +329,7 @@ export async function removeProductLink(linkId: string): Promise<ActionResult> {
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    const { error } = await supabase
-      .from("category_product_links")
-      .delete()
-      .eq("id", linkId);
-    if (error) return { ok: false, error: error.message };
+    await query("DELETE FROM public.category_product_links WHERE id = $1", [linkId]);
     revalidatePath("/admin/categories");
     return { ok: true, data: undefined };
   } catch (e) {
@@ -384,38 +348,32 @@ export async function uploadCategoryIcon(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "请选择图片文件" };
   }
-  if (file.size > 2 * 1024 * 1024) {
+  if (file.size > CATEGORY_ICON_MAX_BYTES) {
     return { ok: false, error: "图片须小于 2MB" };
   }
 
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : file.type === "image/svg+xml"
-          ? "svg"
-          : "jpg";
-
   try {
-    const supabase = createServiceClient();
-    const path = `${categoryId}/${Date.now()}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { error: uploadError } = await supabase.storage
-      .from("category-icons")
-      .upload(path, buffer, { contentType: file.type, upsert: true });
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const detected = verifiedImageType(bytes);
+    if (!detected || detected.mimeType !== file.type) {
+      return { ok: false, error: "仅支持内容有效的 WebP、PNG 或 JPEG 图片" };
+    }
+    const storagePath = `${categoryId}/${randomUUID()}.${detected.extension}`;
+    const filePath = path.join(categoryIconDirectory(), storagePath);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, bytes, { flag: "wx" });
 
-    if (uploadError) return { ok: false, error: uploadError.message };
-
-    const { data: pub } = supabase.storage.from("category-icons").getPublicUrl(path);
-    const icon_url = pub.publicUrl;
-
-    const { error } = await supabase
-      .from("categories")
-      .update({ icon_url })
-      .eq("id", categoryId);
-
-    if (error) return { ok: false, error: error.message };
+    const icon_url = `${publicWebUrl()}/api/category-icons/${storagePath}`;
+    try {
+      const updated = await queryOne<{ id: string }>(
+        "UPDATE public.categories SET icon_url = $1, updated_at = now() WHERE id = $2 RETURNING id",
+        [icon_url, categoryId]
+      );
+      if (!updated) throw new Error("品类不存在");
+    } catch (error) {
+      await unlink(filePath).catch(() => undefined);
+      throw error;
+    }
 
     revalidatePath("/admin/categories");
     return { ok: true, data: { icon_url } };

@@ -90,8 +90,8 @@ export function isWarmthPreference(value: string): value is WarmthPreference {
 }
 
 export const DEFAULT_BABY_AVATARS: Record<BabyGender, string> = {
-  male: "/avatars/baby-boy-default.jpg",
-  female: "/avatars/baby-girl-default.jpg",
+  male: "/avatars/baby-boy-pencil-v1.png",
+  female: "/avatars/baby-girl-pencil-v1.png",
 };
 
 export function resolveBabyAvatarUrl(

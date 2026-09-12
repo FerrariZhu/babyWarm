@@ -23,7 +23,7 @@ export default async function ProfilePage() {
     >
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section-spacing overflow-y-auto px-container-margin pt-2 pb-5">
         {baby ? (
-          <section className="flex items-center gap-4 rounded-2xl bg-primary-fixed/60 p-5">
+          <section data-analytics-module="baby_summary" className="flex items-center gap-4 rounded-2xl bg-primary-fixed/60 p-5">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-surface-variant bg-surface-container shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -41,11 +41,12 @@ export default async function ProfilePage() {
             </div>
           </section>
         ) : (
-          <section className="rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-5 text-center cloud-shadow">
+          <section data-analytics-module="empty_baby_profile" className="rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-5 text-center cloud-shadow">
             <MaterialIcon name="child_care" className="mb-2 text-[32px] text-primary/40" />
             <p className="font-body-md mb-3 text-on-surface-variant">暂无宝宝档案</p>
             <Link
               href="/profile/add"
+              data-analytics-action="add_baby"
               className="font-label-md inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary"
             >
               <MaterialIcon name="add" className="text-[18px]" />
@@ -55,7 +56,7 @@ export default async function ProfilePage() {
         )}
 
         {baby && (
-          <section>
+          <section data-analytics-module="baby_profile">
             <h3 className="font-headline-md mb-stack-gap text-on-background">宝宝档案</h3>
             <div className="profile-details flex flex-col rounded-2xl bg-surface-container-lowest p-5 cloud-shadow">
               <Field label="姓名">
@@ -102,6 +103,7 @@ export default async function ProfilePage() {
               </Field>
               <Link
                 href="/profile/edit"
+                data-analytics-action="edit_profile"
                 className="font-headline-md flex min-h-touch-target-min w-full items-center justify-center rounded-xl bg-primary py-4 text-on-primary shadow-sm transition-all hover:opacity-90"
               >
                 编辑资料

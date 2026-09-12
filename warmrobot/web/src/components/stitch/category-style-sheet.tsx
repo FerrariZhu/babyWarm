@@ -27,59 +27,93 @@ function splitGuideIntro(intro: string): string[] {
     .filter(Boolean);
 }
 
-function GuideList({
-  entries,
-  tone,
+function CategoryGuideImage({
+  categoryLabel,
+  imageUrl,
+  imageAlt,
 }: {
-  entries: string[];
-  tone: "positive" | "caution";
+  categoryLabel: string;
+  imageUrl?: string;
+  imageAlt?: string;
 }) {
-  if (entries.length === 0) return null;
-  const icon = tone === "positive" ? "check_circle" : "warning";
+  const [hasImageError, setHasImageError] = useState(false);
+  if (!imageUrl || hasImageError) return null;
+
   return (
-    <ul
-      className={`mt-2 flex flex-col gap-2 rounded-xl border px-3 py-3 font-body-md text-on-surface ${
-        tone === "positive"
-          ? "border-primary/15 bg-primary-container/30"
-          : "border-tertiary/15 bg-tertiary-container/25"
-      }`}
-      aria-label={tone === "positive" ? "优点" : "注意事项"}
+    <section
+      aria-label="品类示意图"
+      className="mt-4 overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest"
     >
-      {entries.map((entry) => (
-        <li key={entry} className="flex items-start gap-2">
-          <MaterialIcon
-            name={icon}
-            filled
-            className={`mt-0.5 text-[18px] ${
-              tone === "positive" ? "text-primary" : "text-tertiary"
-            }`}
-          />
-          <span>{entry}</span>
-        </li>
-      ))}
-    </ul>
+      <div className="aspect-[4/3] max-h-[280px] w-full bg-primary-container/15">
+        <img
+          src={imageUrl}
+          alt={imageAlt ?? `${categoryLabel}示意图`}
+          decoding="async"
+          className="h-full w-full object-contain p-5"
+          onError={() => setHasImageError(true)}
+        />
+      </div>
+    </section>
   );
 }
 
 function GuideCard({ entry }: { entry: CategoryGuideViewEntry }) {
+  const keyPoints = entry.pros.slice(0, 2);
+  const primaryCaution = entry.cautions[0];
+  const [hasImageError, setHasImageError] = useState(false);
+  const showImage = Boolean(entry.imageUrl) && !hasImageError;
   return (
     <article
-      className={`rounded-2xl border p-4 ${
+      className={`overflow-hidden rounded-2xl border ${
         entry.isSelected
           ? "border-primary/45 bg-surface-container-lowest shadow-[0_8px_22px_rgba(50,67,57,0.08)]"
           : "border-outline-variant/35 bg-surface"
       }`}
     >
-      <div className="flex items-center gap-2">
-        <h3 className="font-label-lg text-on-surface">{entry.label}</h3>
-        {entry.isSelected ? (
-          <span className="font-label-sm ml-auto rounded-md bg-primary-container/50 px-2 py-0.5 text-primary">
-            当前选择
-          </span>
+      <div className={showImage ? "grid grid-cols-[116px_minmax(0,1fr)] gap-3 p-3" : "p-4"}>
+        {showImage ? (
+          <div className="aspect-[4/3] overflow-hidden rounded-xl bg-primary-container/20">
+            <img
+              src={entry.imageUrl}
+              alt={entry.imageAlt ?? `${entry.label}示意图`}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain p-2"
+              onError={() => setHasImageError(true)}
+            />
+          </div>
         ) : null}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-label-lg text-on-surface">{entry.label}</h3>
+            {entry.isSelected ? (
+              <span className="font-label-sm ml-auto shrink-0 rounded-md bg-primary-container/50 px-2 py-0.5 text-primary">
+                今日推荐
+              </span>
+            ) : null}
+          </div>
+          {keyPoints.length ? (
+            <div className="guide-card-points mt-2 flex flex-col gap-2.5">
+              {keyPoints.map((point, index) => (
+                <p
+                  key={`${entry.axis}:${entry.value}:${index}`}
+                  className="font-body-sm leading-6 text-on-surface-variant"
+                >
+                  {point}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
-      <GuideList entries={entry.pros} tone="positive" />
-      <GuideList entries={entry.cautions} tone="caution" />
+      {primaryCaution ? (
+        <div className="border-t border-tertiary/12 bg-tertiary-container/18 px-3 py-2.5">
+          <div className="flex items-start gap-2 font-body-sm leading-6 text-on-surface-variant">
+            <MaterialIcon name="warning" filled className="mt-0.5 shrink-0 text-[16px] text-tertiary" />
+            <span>{primaryCaution}</span>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -123,14 +157,14 @@ export function CategoryStyleSheet({ categoryLabel, guide, item, onClose }: Prop
     <BottomSheet title={categoryLabel} subtitle="衣物指南" size="tall" onClose={onClose}>
       {introPoints.length ? (
         <section
-          className="rounded-2xl bg-tertiary-container/35 px-4 py-4"
+          className="rounded-2xl bg-tertiary-container/35 px-4 py-3.5"
           aria-label="衣物选购重点"
         >
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-tertiary text-on-tertiary">
               <MaterialIcon name="lightbulb" filled className="text-[20px]" />
             </span>
-            <p className="font-body-lg pt-0.5 font-semibold leading-7 text-on-surface">
+            <p className="font-body-md pt-0.5 font-semibold leading-6 text-on-surface">
               {introPoints[0]}
             </p>
           </div>
@@ -151,6 +185,12 @@ export function CategoryStyleSheet({ categoryLabel, guide, item, onClose }: Prop
           ) : null}
         </section>
       ) : null}
+
+      <CategoryGuideImage
+        categoryLabel={categoryLabel}
+        imageUrl={guide?.imageUrl}
+        imageAlt={guide?.imageAlt}
+      />
 
       {tabs.length > 1 ? (
         <div
@@ -200,7 +240,7 @@ export function CategoryStyleSheet({ categoryLabel, guide, item, onClose }: Prop
           role={tabs.length > 1 ? "tabpanel" : undefined}
           aria-labelledby={tabs.length > 1 ? `${tabId}-${selectedGuide?.id}-tab` : undefined}
         >
-          {selectedGuide ? <GuideSection title={selectedGuide.label} entries={selectedGuide.entries} /> : null}
+          {selectedGuide ? <GuideSection title={selectedGuide.label === "款式指南" ? "先看看款式长什么样" : selectedGuide.label} entries={selectedGuide.entries} /> : null}
         </div>
       ) : (
         <p className="font-body-md py-8 text-center text-on-surface-variant">

@@ -12,10 +12,9 @@
   },
   "dependencies": {
     "@fontsource-variable/material-symbols-outlined": "^5.3.3",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.8",
     "@warmrobot/core": "*",
     "next": "^15.3.3",
+    "pg": "^8.21.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -23,6 +22,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.8",
     "@types/node": "^22.15.21",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "eslint": "^9.27.0",

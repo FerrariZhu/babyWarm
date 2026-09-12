@@ -7,13 +7,11 @@ import {
 } from "@warmrobot/core";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
 import { localRecommendedDate } from "@/lib/daily-brief/format";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/self-hosted/auth";
+import { queryOne } from "@/lib/self-hosted/database";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -26,16 +24,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { data: baby, error: babyError } = await supabase
-    .from("babies")
-    .select("id, name")
-    .eq("id", parsed.data.babyId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (babyError) {
-    return NextResponse.json({ error: babyError.message }, { status: 500 });
-  }
+  const baby = await queryOne<{ id: string; name: string }>(
+    "SELECT id, name FROM public.babies WHERE id = $1 AND user_id = $2",
+    [parsed.data.babyId, user.id]
+  );
   if (!baby) {
     return NextResponse.json({ error: "找不到宝宝档案" }, { status: 404 });
   }
@@ -50,35 +42,40 @@ export async function POST(request: Request) {
     weather: parsed.data.weather,
   });
 
-  const { data, error } = await supabase
-    .from("dressing_records")
-    .upsert(
-      {
-        user_id: user.id,
-        baby_id: snapshot.babyId,
-        baby_name: snapshot.babyName,
-        recorded_date: snapshot.recordedDate,
-        saved_at: snapshot.savedAt,
-        required_warmth: snapshot.requiredWarmth,
-        reason: snapshot.reason || null,
-        location_label: snapshot.locationLabel ?? null,
-        weather: snapshot.weather ?? null,
-        outfit: snapshot.outfit,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "baby_id,recorded_date" }
-    )
-    .select(
-      "id, user_id, baby_id, baby_name, recorded_date, saved_at, required_warmth, reason, location_label, weather, outfit"
-    )
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const data = await queryOne<DressingRecordRow>(
+      `INSERT INTO public.dressing_records
+        (user_id, baby_id, baby_name, recorded_date, saved_at, required_warmth, reason, location_label, weather, outfit)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb)
+       ON CONFLICT (baby_id, recorded_date) DO UPDATE
+         SET user_id = EXCLUDED.user_id, baby_name = EXCLUDED.baby_name, saved_at = EXCLUDED.saved_at,
+             required_warmth = EXCLUDED.required_warmth, reason = EXCLUDED.reason,
+             location_label = EXCLUDED.location_label, weather = EXCLUDED.weather, outfit = EXCLUDED.outfit,
+             updated_at = now()
+       WHERE dressing_records.user_id = $1
+       RETURNING id, user_id, baby_id, baby_name, recorded_date, saved_at, required_warmth, reason, location_label, weather, outfit`,
+      [
+        user.id,
+        snapshot.babyId,
+        snapshot.babyName,
+        snapshot.recordedDate,
+        snapshot.savedAt,
+        snapshot.requiredWarmth,
+        snapshot.reason || null,
+        snapshot.locationLabel ?? null,
+        snapshot.weather == null ? null : JSON.stringify(snapshot.weather),
+        JSON.stringify(snapshot.outfit),
+      ]
+    );
+    if (!data) {
+      return NextResponse.json({ error: "该日期的记录不属于当前用户" }, { status: 409 });
+    }
+    return NextResponse.json({
+      success: true,
+      data: mapDressingRecordRow(data),
+    });
+  } catch (error) {
+    console.error("[dressing-records/save]", error);
+    return NextResponse.json({ error: "保存穿衣记录失败" }, { status: 500 });
   }
-
-  return NextResponse.json({
-    success: true,
-    data: mapDressingRecordRow(data as DressingRecordRow),
-  });
 }

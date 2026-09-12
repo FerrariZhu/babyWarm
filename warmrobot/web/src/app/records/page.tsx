@@ -21,7 +21,7 @@ export default async function RecordsPage() {
       headerVariant="centered"
       headerTitle="穿衣记录"
     >
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section-spacing px-container-margin pt-2 pb-5">
+      <main data-analytics-module="dressing_records" className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section-spacing px-container-margin pt-2 pb-5">
         <DressingRecordList records={records} />
       </main>
     </AppShell>

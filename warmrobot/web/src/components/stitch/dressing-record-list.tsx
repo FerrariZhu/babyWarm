@@ -43,7 +43,7 @@ function ZoneRow({
 }
 
 function outfitPreview(summary: ReturnType<typeof summarizeOutfit>): string {
-  const parts = [summary.indoor, summary.outdoor, summary.extras].filter(Boolean);
+  const parts = [summary.outfit, summary.extras].filter(Boolean);
   if (parts.length === 0) return "暂无清单明细";
   return parts.join(" · ");
 }
@@ -105,8 +105,7 @@ function DressingRecordCard({ record }: { record: DressingRecord }) {
               {record.locationLabel ? <p className="font-label-sm text-text-soft">· {record.locationLabel}</p> : null}
             </div>
             <dl className="divide-y divide-outline-variant/25">
-              <ZoneRow heading="家里穿" value={summary.indoor} empty="—" />
-              <ZoneRow heading="出门再加" value={summary.outdoor} empty="出门不用再加衣服。" />
+              <ZoneRow heading="今日穿搭" value={summary.outfit} empty="—" />
               {summary.extras ? <ZoneRow heading="记得带" value={summary.extras} empty="" /> : null}
             </dl>
             {record.reason ? (
@@ -125,7 +124,7 @@ function DressingRecordCard({ record }: { record: DressingRecord }) {
 export function DressingRecordList({ records }: { records: DressingRecord[] }) {
   if (records.length === 0) {
     return (
-      <section className="rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-5 text-center shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+      <section data-analytics-module="empty_dressing_records" className="rounded-xl border border-surface-variant/50 bg-surface-container-lowest p-5 text-center shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/illustrations/fluent/memo_flat.svg" width="72" height="72" alt="" className="mx-auto mb-4 h-[72px] w-[72px]" />
         <h2 className="font-headline-md mb-1.5 text-on-surface">还没有穿衣记录</h2>
@@ -134,6 +133,7 @@ export function DressingRecordList({ records }: { records: DressingRecord[] }) {
         </p>
         <Link
           href="/"
+          data-analytics-action="go_home"
           className="font-label-md inline-flex min-h-touch-target-min items-center justify-center gap-2 rounded-full bg-primary px-6 text-on-primary"
         >
           去保存今日清单

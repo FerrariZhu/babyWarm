@@ -7,13 +7,22 @@ import { MaterialIcon } from "./material-icon";
 
 type Choice = { value: string; label: string; item: AdviceItem };
 
-export function GarmentChoicePicker({ label, garment, value, choices, onSelect, iconOnly = false }: {
+export function GarmentChoicePicker({
+  label,
+  garment,
+  value,
+  choices,
+  onSelect,
+  iconOnly = false,
+  iconName = "expand_more",
+}: {
   label: string;
   garment: string;
   value: string;
   choices: Choice[];
   onSelect: (item: AdviceItem) => void;
   iconOnly?: boolean;
+  iconName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -62,7 +71,7 @@ export function GarmentChoicePicker({ label, garment, value, choices, onSelect, 
       aria-label={`${garment}：选择${label}`} aria-haspopup="listbox" aria-controls={open ? listId : undefined} aria-expanded={open} onClick={() => setOpen(!open)}
       onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); } }}>
       {!iconOnly ? <><span className="garment-field-label">{label}</span><span className="garment-field-value">{current?.label ?? value}</span></> : null}
-      <MaterialIcon name="expand_more" className="text-[20px]" />
+      <MaterialIcon name={iconName} className="text-[20px]" />
     </button>
     {open ? createPortal(
       <div ref={panel} id={listId} role="listbox" aria-label={`${garment}：选择${label}`}

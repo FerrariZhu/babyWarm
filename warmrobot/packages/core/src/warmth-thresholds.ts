@@ -25,7 +25,7 @@ export const PRECIP_WARMTH_ADJUST = 3;
 
 /**
  * UV index at or above → outdoor sun protection gear (hat / outer_uv) on warm days
- * and tip-tag「注意防晒」. WHO「高」档起点。
+ * and wearable sun-protection items. WHO「高」档起点。
  */
 export const UV_OUTDOOR_THRESHOLD = 6;
 

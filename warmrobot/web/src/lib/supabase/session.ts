@@ -1,17 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getCurrentUser, type AppUser } from "@/lib/self-hosted/auth";
 
 export type AuthenticatedSession = {
-  supabase: SupabaseClient;
-  user: User;
+  user: AppUser;
 };
 
 /** Returns null when the visitor is not signed in. */
 export async function requireUser(): Promise<AuthenticatedSession | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return null;
-  return { supabase, user };
+  return { user };
 }

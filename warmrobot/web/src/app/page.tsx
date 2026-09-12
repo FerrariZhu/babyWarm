@@ -4,6 +4,7 @@ import { resolveHourOverride } from "@/lib/daily-brief/format";
 import { AppShell } from "@/components/stitch/app-shell";
 import { LiveWeatherSection } from "@/components/stitch/live-weather-section";
 import { DailyAdviceSection } from "@/components/stitch/daily-advice-section";
+import { AddBabyChecklistPrompt } from "@/components/stitch/add-baby-checklist-prompt";
 import { MaterialIcon } from "@/components/stitch/material-icon";
 
 export default async function HomePage({
@@ -25,13 +26,9 @@ export default async function HomePage({
       babyName={baby?.name}
       avatarUrl={baby?.avatar_url}
       babyGender={baby?.gender}
-      headerVariant="none"
+      headerVariant="brand"
     >
       <main className="home-page mx-auto flex w-full max-w-5xl flex-1 flex-col gap-section-spacing px-container-margin pb-5">
-        <header className="home-brand">
-          <h1>暖宝宝</h1>
-          {baby?.name ? <p>{baby.name}</p> : null}
-        </header>
         {brief && (
           <>
             <LiveWeatherSection
@@ -47,45 +44,43 @@ export default async function HomePage({
               }}
               fallbackLocationLabel={brief.weather.locationLabel}
               fallbackObservedAtDisplay={observedAtDisplay}
-              requiredWarmth={brief.advice.current.requiredWarmth}
+              requiredWarmth={baby ? brief.advice.current.requiredWarmth : null}
               selectedHourKey={hourOverride}
-            />
-            <DailyAdviceSection
-              advice={brief.advice}
-              weather={brief.weather}
-              showChecklist={Boolean(baby)}
-              categoryGuideByCategory={categoryGuideByCategory}
-              categoryIcons={categoryIcons}
-              saveContext={
-                baby
-                  ? {
-                      babyId: baby.id,
-                      babyName: baby.name,
-                      weather: brief.weather,
-                      alreadySaved: savedToday,
-                    }
-                  : null
-              }
-              diaperContext={
-                baby
-                  ? {
-                      babyId: baby.id,
-                      wearsDiaper: baby.wears_diaper ?? null,
-                      promptState: {
-                        wearsDiaper: baby.wears_diaper ?? null,
-                        lastShownAt: baby.diaper_prompt_last_shown_at ?? null,
-                        lastAnsweredAt: baby.diaper_prompt_last_answered_at ?? null,
-                        lastAnswer: baby.diaper_prompt_last_answer ?? null,
-                      },
-                    }
-                  : null
-              }
             />
           </>
         )}
 
+        {baby && brief && (
+          <DailyAdviceSection
+            advice={brief.advice}
+            weather={brief.weather}
+            categoryGuideByCategory={categoryGuideByCategory}
+            categoryIcons={categoryIcons}
+            saveContext={{
+              babyId: baby.id,
+              babyName: baby.name,
+              weather: brief.weather,
+              alreadySaved: savedToday,
+            }}
+            diaperContext={{
+              babyId: baby.id,
+              wearsDiaper: baby.wears_diaper ?? null,
+              promptState: {
+                wearsDiaper: baby.wears_diaper ?? null,
+                lastShownAt: baby.diaper_prompt_last_shown_at ?? null,
+                lastAnsweredAt: baby.diaper_prompt_last_answered_at ?? null,
+                lastAnswer: baby.diaper_prompt_last_answer ?? null,
+              },
+            }}
+          />
+        )}
+
+        {!baby && (
+          <AddBabyChecklistPrompt />
+        )}
+
         {!brief && (
-          <section className="mt-6 rounded-2xl bg-error-container p-8 text-center">
+          <section data-analytics-module="weather_error" className="mt-6 rounded-2xl bg-error-container p-8 text-center">
             <MaterialIcon name="cloud_off" className="mb-3 text-[40px] text-on-error-container" />
             <h2 className="font-headline-md mb-2 text-on-error-container">暂时无法获取天气</h2>
             <p className="font-body-md text-on-error-container/90">

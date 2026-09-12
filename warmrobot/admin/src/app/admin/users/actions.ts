@@ -12,7 +12,7 @@ import {
   type UserLoginChannel,
   type UserSignupChannel,
 } from "@/lib/admin/user-types";
-import { createServiceClient } from "@/lib/supabase/service";
+import { query, queryOne } from "@/lib/self-hosted/database";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
@@ -38,9 +38,9 @@ type ProfileRow = {
   wechat_unionid: string | null;
   admin_notes: string | null;
   last_login_channel: UserLoginChannel | null;
-  last_login_at: string | null;
-  created_at: string;
-  updated_at: string;
+  last_login_at: string | Date | null;
+  created_at: string | Date;
+  updated_at: string | Date;
 };
 
 type BabyRow = {
@@ -54,7 +54,7 @@ type BabyRow = {
   weight_kg: number | null;
   is_active: boolean;
   notes: string | null;
-  created_at: string;
+  created_at: string | Date;
   baby_warmth_preferences:
     | {
         warmth_preference: string | null;
@@ -80,9 +80,34 @@ type ManualRow = {
   baby_height_cm: number | null;
   baby_weight_kg: number | null;
   baby_warmth_preference: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | Date;
+  updated_at: string | Date;
 };
+
+type AccountRow = {
+  id: string;
+  email: string | null;
+  created_at: string | Date;
+};
+
+const PROFILE_SELECT =
+  "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, last_login_channel, last_login_at, created_at, updated_at";
+const MANUAL_SELECT =
+  "id, parent_name, wechat_id, email, city, admin_notes, baby_name, baby_birth_date, baby_gender, baby_height_cm, baby_weight_kg, baby_warmth_preference, created_at, updated_at";
+const BABY_SELECT = `b.id, b.user_id, b.name, b.birth_date::text, b.gender, b.activity_level,
+  b.height_cm, b.weight_kg, b.is_active, b.notes, b.created_at,
+  CASE WHEN p.baby_id IS NULL THEN NULL ELSE jsonb_build_object(
+    'warmth_preference', p.warmth_preference,
+    'warmth_offset', p.warmth_offset
+  ) END AS baby_warmth_preferences`;
+
+function timestamp(value: string | Date): string {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function nullableTimestamp(value: string | Date | null): string | null {
+  return value === null ? null : timestamp(value);
+}
 
 function mapBaby(row: BabyRow): AdminBabyRecord {
   const prefs = Array.isArray(row.baby_warmth_preferences)
@@ -101,7 +126,7 @@ function mapBaby(row: BabyRow): AdminBabyRecord {
     notes: row.notes,
     warmth_preference: prefs?.warmth_preference ?? null,
     warmth_offset: prefs?.warmth_offset != null ? Number(prefs.warmth_offset) : null,
-    created_at: row.created_at,
+    created_at: timestamp(row.created_at),
     fromApp: true,
   };
 }
@@ -120,18 +145,9 @@ function mapManualBaby(row: ManualRow): AdminBabyRecord | null {
     notes: null,
     warmth_preference: row.baby_warmth_preference,
     warmth_offset: null,
-    created_at: row.created_at,
+    created_at: timestamp(row.created_at),
     fromApp: false,
   };
-}
-
-function resolveSignupChannel(
-  metadata: Record<string, unknown> | undefined
-): UserSignupChannel {
-  const channel = metadata?.signup_channel;
-  if (channel === "miniprogram") return "miniprogram";
-  // 未来：if (channel === "h5") return "h5";
-  return "miniprogram";
 }
 
 function mapAppUser(
@@ -154,9 +170,9 @@ function mapAppUser(
     wechat_unionid: profile.wechat_unionid,
     admin_notes: profile.admin_notes,
     last_login_channel: profile.last_login_channel,
-    last_login_at: profile.last_login_at,
-    created_at: profile.created_at,
-    updated_at: profile.updated_at,
+    last_login_at: nullableTimestamp(profile.last_login_at),
+    created_at: timestamp(profile.created_at),
+    updated_at: timestamp(profile.updated_at),
     babies,
   };
 }
@@ -178,27 +194,26 @@ function mapManualUser(row: ManualRow): AdminUserRecord {
     admin_notes: row.admin_notes,
     last_login_channel: null,
     last_login_at: null,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    created_at: timestamp(row.created_at),
+    updated_at: timestamp(row.updated_at),
     babies: baby ? [baby] : [],
   };
 }
 
-function manualRowPayload(input: SaveManualUserInput): Record<string, unknown> {
-  const parent_name = input.parent_name.trim();
-  return {
-    parent_name,
-    wechat_id: input.wechat_id?.trim() || null,
-    email: input.email?.trim() || null,
-    city: input.city?.trim() || null,
-    admin_notes: input.admin_notes?.trim() || null,
-    baby_name: input.baby_name?.trim() || null,
-    baby_birth_date: input.baby_birth_date?.trim() || null,
-    baby_gender: input.baby_gender?.trim() || null,
-    baby_height_cm: input.baby_height_cm ?? null,
-    baby_weight_kg: input.baby_weight_kg ?? null,
-    baby_warmth_preference: input.baby_warmth_preference?.trim() || null,
-  };
+function manualRowValues(input: SaveManualUserInput): unknown[] {
+  return [
+    input.parent_name.trim(),
+    input.wechat_id?.trim() || null,
+    input.email?.trim() || null,
+    input.city?.trim() || null,
+    input.admin_notes?.trim() || null,
+    input.baby_name?.trim() || null,
+    input.baby_birth_date?.trim() || null,
+    input.baby_gender?.trim() || null,
+    input.baby_height_cm ?? null,
+    input.baby_weight_kg ?? null,
+    input.baby_warmth_preference?.trim() || null,
+  ];
 }
 
 export async function listAdminUsers(): Promise<ActionResult<AdminUserRecord[]>> {
@@ -206,97 +221,42 @@ export async function listAdminUsers(): Promise<ActionResult<AdminUserRecord[]>>
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
+    const [accounts, profiles, babies, manualRows] = await Promise.all([
+      query<AccountRow>("SELECT id, email, created_at FROM public.app_accounts ORDER BY created_at DESC"),
+      query<ProfileRow>(`SELECT ${PROFILE_SELECT} FROM public.profiles ORDER BY created_at DESC`),
+      query<BabyRow>(
+        `SELECT ${BABY_SELECT}
+           FROM public.babies b
+           LEFT JOIN public.baby_warmth_preferences p ON p.baby_id = b.id
+          ORDER BY b.created_at ASC`
+      ),
+      query<ManualRow>(`SELECT ${MANUAL_SELECT} FROM public.admin_user_info_records ORDER BY created_at DESC`),
+    ]);
 
-    const emailById = new Map<string, string | null>();
-    const signupChannelById = new Map<string, UserSignupChannel>();
-    let page = 1;
-    const perPage = 200;
-
-    while (true) {
-      const { data: authPage, error: authError } = await supabase.auth.admin.listUsers({
-        page,
-        perPage,
-      });
-      if (authError) return { ok: false, error: authError.message };
-
-      for (const user of authPage.users) {
-        emailById.set(user.id, user.email ?? null);
-        signupChannelById.set(
-          user.id,
-          resolveSignupChannel(user.user_metadata as Record<string, unknown> | undefined)
-        );
-      }
-
-      if (authPage.users.length < perPage) break;
-      page += 1;
-    }
-
-    const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select(
-        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, last_login_channel, last_login_at, created_at, updated_at"
-      )
-      .order("created_at", { ascending: false });
-
-    if (profileError) return { ok: false, error: profileError.message };
-
-    const { data: babies, error: babyError } = await supabase
-      .from("babies")
-      .select(
-        `
-        id,
-        user_id,
-        name,
-        birth_date,
-        gender,
-        activity_level,
-        height_cm,
-        weight_kg,
-        is_active,
-        notes,
-        created_at,
-        baby_warmth_preferences (
-          warmth_preference,
-          warmth_offset
-        )
-      `
-      )
-      .order("created_at", { ascending: true });
-
-    if (babyError) return { ok: false, error: babyError.message };
-
-    const { data: manualRows, error: manualError } = await supabase
-      .from("admin_user_info_records")
-      .select(
-        "id, parent_name, wechat_id, email, city, admin_notes, baby_name, baby_birth_date, baby_gender, baby_height_cm, baby_weight_kg, baby_warmth_preference, created_at, updated_at"
-      )
-      .order("created_at", { ascending: false });
-
-    if (manualError) return { ok: false, error: manualError.message };
+    const accountById = new Map(accounts.map((account) => [account.id, account]));
 
     const babiesByUser = new Map<string, AdminBabyRecord[]>();
-    for (const row of (babies ?? []) as BabyRow[]) {
+    for (const row of babies) {
       const list = babiesByUser.get(row.user_id) ?? [];
       list.push(mapBaby(row));
       babiesByUser.set(row.user_id, list);
     }
 
-    const records: AdminUserRecord[] = ((profiles ?? []) as ProfileRow[]).map((profile) =>
+    const records: AdminUserRecord[] = profiles.map((profile) =>
       mapAppUser(
         profile,
-        emailById.get(profile.id) ?? null,
+        accountById.get(profile.id)?.email ?? null,
         babiesByUser.get(profile.id) ?? [],
-        signupChannelById.get(profile.id)
+        "miniprogram"
       )
     );
 
-    for (const [id, email] of emailById) {
-      if (records.some((r) => r.id === id)) continue;
+    for (const account of accounts) {
+      if (records.some((record) => record.id === account.id)) continue;
       records.push(
         mapAppUser(
           {
-            id,
+            id: account.id,
             display_name: null,
             avatar_url: null,
             city: null,
@@ -308,17 +268,17 @@ export async function listAdminUsers(): Promise<ActionResult<AdminUserRecord[]>>
             admin_notes: null,
             last_login_channel: null,
             last_login_at: null,
-            created_at: "",
-            updated_at: "",
+            created_at: timestamp(account.created_at),
+            updated_at: timestamp(account.created_at),
           },
-          email,
-          babiesByUser.get(id) ?? [],
-          signupChannelById.get(id)
+          account.email,
+          babiesByUser.get(account.id) ?? [],
+          "miniprogram"
         )
       );
     }
 
-    for (const row of (manualRows ?? []) as ManualRow[]) {
+    for (const row of manualRows) {
       records.push(mapManualUser(row));
     }
 
@@ -341,51 +301,49 @@ export async function saveAppUserProfile(
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    const patch = {
-      display_name: input.display_name?.trim() || null,
-      wechat_id: input.wechat_id?.trim() || null,
-      wechat_openid: input.wechat_openid?.trim() || null,
-      wechat_unionid: input.wechat_unionid?.trim() || null,
-      city: input.city?.trim() || null,
-      admin_notes: input.admin_notes?.trim() || null,
-    };
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(patch)
-      .eq("id", input.id)
-      .select(
-        "id, display_name, avatar_url, city, latitude, longitude, wechat_id, wechat_openid, wechat_unionid, admin_notes, last_login_channel, last_login_at, created_at, updated_at"
-      )
-      .single();
-
-    if (error) return { ok: false, error: error.message };
-
-    const { data: authUser } = await supabase.auth.admin.getUserById(input.id);
-    const signupChannel = resolveSignupChannel(
-      authUser.user?.user_metadata as Record<string, unknown> | undefined
+    const data = await queryOne<ProfileRow>(
+      `UPDATE public.profiles
+          SET display_name = $1,
+              wechat_id = $2,
+              wechat_openid = $3,
+              wechat_unionid = $4,
+              city = $5,
+              admin_notes = $6,
+              updated_at = now()
+        WHERE id = $7
+        RETURNING ${PROFILE_SELECT}`,
+      [
+        input.display_name?.trim() || null,
+        input.wechat_id?.trim() || null,
+        input.wechat_openid?.trim() || null,
+        input.wechat_unionid?.trim() || null,
+        input.city?.trim() || null,
+        input.admin_notes?.trim() || null,
+        input.id,
+      ]
     );
-
-    const { data: babies } = await supabase
-      .from("babies")
-      .select(
-        `
-        id, user_id, name, birth_date, gender, activity_level, height_cm, weight_kg, is_active, notes, created_at,
-        baby_warmth_preferences ( warmth_preference, warmth_offset )
-      `
-      )
-      .eq("user_id", input.id)
-      .order("created_at", { ascending: true });
+    if (!data) return { ok: false, error: "用户不存在" };
+    const account = await queryOne<{ email: string | null }>(
+      "SELECT email FROM public.app_accounts WHERE id = $1",
+      [input.id]
+    );
+    const babies = await query<BabyRow>(
+      `SELECT ${BABY_SELECT}
+         FROM public.babies b
+         LEFT JOIN public.baby_warmth_preferences p ON p.baby_id = b.id
+        WHERE b.user_id = $1
+        ORDER BY b.created_at ASC`,
+      [input.id]
+    );
 
     revalidatePath("/admin/users");
     return {
       ok: true,
       data: mapAppUser(
-        data as ProfileRow,
-        authUser.user?.email ?? null,
-        ((babies ?? []) as BabyRow[]).map(mapBaby),
-        signupChannel
+        data,
+        account?.email ?? null,
+        babies.map(mapBaby),
+        "miniprogram"
       ),
     };
   } catch (e) {
@@ -403,19 +361,18 @@ export async function createManualUserRecord(
   if (!parent_name) return { ok: false, error: "用户名称不能为空" };
 
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("admin_user_info_records")
-      .insert(manualRowPayload({ ...input, parent_name }))
-      .select(
-        "id, parent_name, wechat_id, email, city, admin_notes, baby_name, baby_birth_date, baby_gender, baby_height_cm, baby_weight_kg, baby_warmth_preference, created_at, updated_at"
-      )
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+    const data = await queryOne<ManualRow>(
+      `INSERT INTO public.admin_user_info_records
+        (parent_name, wechat_id, email, city, admin_notes, baby_name, baby_birth_date,
+         baby_gender, baby_height_cm, baby_weight_kg, baby_warmth_preference)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING ${MANUAL_SELECT}`,
+      manualRowValues({ ...input, parent_name })
+    );
+    if (!data) return { ok: false, error: "创建失败" };
 
     revalidatePath("/admin/users");
-    return { ok: true, data: mapManualUser(data as ManualRow) };
+    return { ok: true, data: mapManualUser(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "创建失败" };
   }
@@ -431,20 +388,21 @@ export async function updateManualUserRecord(
   if (!parent_name) return { ok: false, error: "用户名称不能为空" };
 
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("admin_user_info_records")
-      .update(manualRowPayload({ ...input, parent_name }))
-      .eq("id", input.id)
-      .select(
-        "id, parent_name, wechat_id, email, city, admin_notes, baby_name, baby_birth_date, baby_gender, baby_height_cm, baby_weight_kg, baby_warmth_preference, created_at, updated_at"
-      )
-      .single();
-
-    if (error) return { ok: false, error: error.message };
+    const values = manualRowValues({ ...input, parent_name });
+    const data = await queryOne<ManualRow>(
+      `UPDATE public.admin_user_info_records
+          SET parent_name = $1, wechat_id = $2, email = $3, city = $4,
+              admin_notes = $5, baby_name = $6, baby_birth_date = $7,
+              baby_gender = $8, baby_height_cm = $9, baby_weight_kg = $10,
+              baby_warmth_preference = $11, updated_at = now()
+        WHERE id = $12
+        RETURNING ${MANUAL_SELECT}`,
+      [...values, input.id]
+    );
+    if (!data) return { ok: false, error: "记录不存在" };
 
     revalidatePath("/admin/users");
-    return { ok: true, data: mapManualUser(data as ManualRow) };
+    return { ok: true, data: mapManualUser(data) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "更新失败" };
   }
@@ -455,9 +413,7 @@ export async function deleteManualUserRecord(id: string): Promise<ActionResult> 
   if (!auth.ok) return auth;
 
   try {
-    const supabase = createServiceClient();
-    const { error } = await supabase.from("admin_user_info_records").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    await query("DELETE FROM public.admin_user_info_records WHERE id = $1", [id]);
 
     revalidatePath("/admin/users");
     return { ok: true, data: undefined };
@@ -497,19 +453,28 @@ export async function listUserDressingRecords(
   if (!userId.trim()) return { ok: false, error: "缺少用户 ID" };
 
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("dressing_records")
-      .select(
-        "id, baby_id, baby_name, recorded_date, saved_at, required_warmth, reason, location_label, weather, outfit"
-      )
-      .eq("user_id", userId)
-      .order("recorded_date", { ascending: false })
-      .limit(90);
+    const data = await query<{
+      id: string;
+      baby_id: string;
+      baby_name: string;
+      recorded_date: string;
+      saved_at: string | Date;
+      required_warmth: number;
+      reason: string | null;
+      location_label: string | null;
+      weather: unknown;
+      outfit: unknown;
+    }>(
+      `SELECT id, baby_id, baby_name, recorded_date::text, saved_at, required_warmth,
+              reason, location_label, weather, outfit
+         FROM public.dressing_records
+        WHERE user_id = $1
+        ORDER BY recorded_date DESC
+        LIMIT 90`,
+      [userId]
+    );
 
-    if (error) return { ok: false, error: error.message };
-
-    const records: AdminDressingRecord[] = (data ?? []).map((row) => {
+    const records: AdminDressingRecord[] = data.map((row) => {
       const weather = (row.weather ?? null) as { conditionText?: string; temp?: number } | null;
       const outfit = (row.outfit ?? {}) as OutfitSnapshot;
       return {
@@ -517,7 +482,7 @@ export async function listUserDressingRecords(
         babyId: row.baby_id as string,
         babyName: (row.baby_name as string) || "—",
         recordedDate: row.recorded_date as string,
-        savedAt: row.saved_at as string,
+        savedAt: timestamp(row.saved_at),
         requiredWarmth: Number(row.required_warmth),
         reason: (row.reason as string) ?? "",
         locationLabel: (row.location_label as string) ?? null,

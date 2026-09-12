@@ -1,0 +1,49 @@
+services:
+  web:
+    build:
+      context: .
+      target: web
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    environment:
+      HOSTNAME: 127.0.0.1
+      GUIDE_ASSET_DIR: /var/lib/warmrobot/guide-assets
+      GUIDE_ASSET_SEED_DIR: /app/assets/guide-image-seeds
+    command: ["npm", "run", "start", "-w", "web", "--", "-H", "127.0.0.1"]
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      guide-assets-init:
+        condition: service_completed_successfully
+    volumes:
+      - guide_assets:/var/lib/warmrobot/guide-assets
+
+  admin:
+    build:
+      context: .
+      target: admin
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    environment:
+      HOSTNAME: 127.0.0.1
+      GUIDE_ASSET_DIR: /var/lib/warmrobot/guide-assets
+    command: ["npm", "run", "start", "-w", "admin", "--", "-H", "127.0.0.1"]
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      guide-assets-init:
+        condition: service_completed_successfully
+    volumes:
+      - guide_assets:/var/lib/warmrobot/guide-assets
+
+  guide-assets-init:
+    build:
+      context: .
+      target: runtime
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /var/lib/warmrobot/guide-assets && chown -R 1001:1001 /var/lib/warmrobot/guide-assets"]
+    volumes:
+      - guide_assets:/var/lib/warmrobot/guide-assets
+
+volumes:
+  guide_assets:
