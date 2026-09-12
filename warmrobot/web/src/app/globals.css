@@ -1426,8 +1426,9 @@ body { margin: 0; line-height: 1.6; }
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--color-primary-fixed) 72%, transparent);
+  background: transparent;
 }
 .advice-method-visual {
   display: grid;
@@ -1435,8 +1436,8 @@ body { margin: 0; line-height: 1.6; }
   height: 50px;
   place-items: center;
   border-radius: 16px;
-  background: rgb(255 253 252 / 72%);
-  box-shadow: 0 5px 14px rgb(71 102 87 / 6%);
+  background: transparent;
+  box-shadow: none;
 }
 .advice-method-visual img {
   width: 44px;
@@ -1461,13 +1462,12 @@ body { margin: 0; line-height: 1.6; }
 .advice-method-steps {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 4px 12px;
   margin-top: 5px;
 }
 .advice-method-steps span {
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgb(255 253 252 / 70%);
+  padding: 1px 0;
+  background: transparent;
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 600;
