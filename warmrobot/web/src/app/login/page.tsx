@@ -58,7 +58,21 @@ export default function LoginPage() {
             {error && <p role="alert" className="rounded-xl bg-error-container px-3 py-2 font-body-md text-on-error-container">{error}</p>}
             <button type="submit" data-analytics-action="submit_login" disabled={loading} className="font-label-caps min-h-12 w-full rounded-xl bg-primary py-3 text-on-primary disabled:opacity-60">{loading ? "登录中…" : "登录"}</button>
           </form>
-          <p className="mt-6 text-center font-body-md text-sm text-on-surface-variant">微信小程序请使用“微信手机号登录”。</p>
+          <aside aria-label="Demo 账号" className="mt-6 border-t border-surface-container-high pt-5">
+            <h2 className="font-label-caps text-on-surface">Demo 账号</h2>
+            <p className="mt-1 font-body-md text-sm text-on-surface-variant">可使用以下账号直接体验</p>
+            <dl className="mt-3 space-y-2 font-body-md text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0 text-on-surface-variant">邮箱</dt>
+                <dd className="break-all text-right font-medium text-on-surface">demo_user_1@warmrobot.dev</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0 text-on-surface-variant">密码</dt>
+                <dd className="text-right font-medium text-on-surface">password123</dd>
+              </div>
+            </dl>
+          </aside>
+          <p className="mt-5 text-center font-body-md text-sm text-on-surface-variant">微信小程序请使用“微信手机号登录”。</p>
         </section>
       </main>
     </>
