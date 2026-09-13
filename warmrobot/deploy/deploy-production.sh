@@ -79,7 +79,6 @@ if [[ ! -f "${RELEASE_DIR}/.release-ready" ]]; then
     rm -rf -- "${RELEASE_DIR}/${deleted_path}"
   done < "${RELEASE_DIR}/.release-deletes"
   printf '%s\n' "$RELEASE_ID" > "${RELEASE_DIR}/.release-id"
-  touch "${RELEASE_DIR}/.release-ready"
 fi
 
 for required in compose.yaml Dockerfile deploy/run-postgres-migrations.sh; do
@@ -88,6 +87,7 @@ for required in compose.yaml Dockerfile deploy/run-postgres-migrations.sh; do
     exit 11
   fi
 done
+touch "${RELEASE_DIR}/.release-ready"
 
 activated=false
 rollback() {

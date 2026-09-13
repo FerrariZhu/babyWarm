@@ -58,6 +58,10 @@ test("the production deploy is serialized, migrates, health-checks, and can roll
   assert.match(source, /127\.0\.0\.1:3000\/login/);
   assert.match(source, /127\.0\.0\.1:3001\/login/);
   assert.match(source, /rollback/);
+  assert.ok(
+    source.indexOf("for required in") < source.indexOf('touch "${RELEASE_DIR}/.release-ready"'),
+    "a release must not be marked ready before required files are validated",
+  );
 });
 
 test("the migration runner records each successful migration exactly once", async () => {
