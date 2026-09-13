@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatAuthLoginError } from "@/lib/auth/login-error";
+import { getEmailLoginError } from "@/lib/auth/login-response";
 import { FirstLaunchIntro } from "@/components/onboarding/first-launch-intro";
 
 export default function LoginPage() {
@@ -29,7 +30,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!response.ok) {
-        setError("登录未成功，请检查邮箱和密码后再试。");
+        setError(getEmailLoginError(response.status));
         return;
       }
       router.push("/");
