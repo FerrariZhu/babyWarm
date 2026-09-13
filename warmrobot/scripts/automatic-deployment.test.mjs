@@ -25,6 +25,9 @@ test("main deploys only after the complete verification gate", async () => {
   assert.match(workflow, /secrets\.DEPLOY_SSH_KEY/);
   assert.match(workflow, /root@warmbaby\.top/);
   assert.match(workflow, /warmrobot-deploy.*GITHUB_SHA/);
+  assert.match(workflow, /BASE_SHA/);
+  assert.match(workflow, /git diff.*--diff-filter=ACMRTUXB/);
+  assert.match(workflow, /\.release-base/);
   assert.doesNotMatch(workflow, /sudo -n/);
   assert.doesNotMatch(workflow, /StrictHostKeyChecking=no/);
 });
@@ -33,7 +36,7 @@ test("the privileged SSH identity is restricted to one validated deploy command"
   const source = await readFile(gatewayScriptUrl, "utf8");
 
   assert.match(source, /SSH_ORIGINAL_COMMAND/);
-  assert.match(source, /\^warmrobot-deploy \[0-9a-f\]\{40\}\$/);
+  assert.match(source, /\^warmrobot-deploy \[0-9a-f\]\{40\} \[0-9a-f\]\{40\}\$/);
   assert.match(source, /exec \/usr\/local\/sbin\/warmrobot-deploy/);
   assert.doesNotMatch(source, /\beval\b/);
 });
@@ -44,6 +47,10 @@ test("the production deploy is serialized, migrates, health-checks, and can roll
   assert.match(source, /flock/);
   assert.match(source, /\^\[0-9a-f\]\{40\}\$/);
   assert.match(source, /warmrobot-releases/);
+  assert.match(source, /\.release-base/);
+  assert.match(source, /\.release-id/);
+  assert.match(source, /base release does not match/);
+  assert.match(source, /\.release-deletes/);
   assert.match(source, /warmrobot-shared\/\.env\.production/);
   assert.match(source, /run-postgres-migrations\.sh/);
   assert.match(source, /docker compose.*build/);

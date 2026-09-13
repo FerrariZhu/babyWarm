@@ -5,13 +5,14 @@ export LC_ALL=C
 umask 077
 
 readonly RELEASE_ID="${1:-}"
+readonly BASE_ID="${2:-}"
 readonly RELEASES_DIR="/opt/warmrobot-releases"
 readonly SHARED_ENV="/opt/warmrobot-shared/.env.production"
 readonly CURRENT_LINK="/opt/warmrobot-current"
 readonly ARCHIVE_PATH="/home/deploy/incoming/warmrobot-${RELEASE_ID}.tar.gz"
 
-if [[ ! "$RELEASE_ID" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "release id must be a 40-character lowercase commit SHA" >&2
+if [[ ! "$RELEASE_ID" =~ ^[0-9a-f]{40}$ || ! "$BASE_ID" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "release and base ids must be 40-character lowercase commit SHAs" >&2
   exit 2
 fi
 
@@ -36,28 +37,57 @@ fi
 
 install -d -m 0755 "$RELEASES_DIR"
 readonly RELEASE_DIR="${RELEASES_DIR}/${RELEASE_ID}"
-if [[ ! -f "${RELEASE_DIR}/.release-ready" ]]; then
-  if [[ -e "$RELEASE_DIR" ]]; then
-    rm -rf -- "$RELEASE_DIR"
-  fi
-  install -d -m 0755 "$RELEASE_DIR"
-  tar --extract --gzip --file "$ARCHIVE_PATH" --directory "$RELEASE_DIR" --no-same-owner --no-same-permissions
-  touch "${RELEASE_DIR}/.release-ready"
-fi
-
-for required in compose.yaml Dockerfile deploy/run-postgres-migrations.sh; do
-  if [[ ! -f "${RELEASE_DIR}/${required}" ]]; then
-    echo "release is missing ${required}" >&2
-    exit 7
-  fi
-done
-
 previous_release=""
 if [[ -L "$CURRENT_LINK" ]]; then
   previous_release="$(readlink -f "$CURRENT_LINK")"
 elif [[ -f /opt/warmrobot/compose.yaml ]]; then
   previous_release="/opt/warmrobot"
 fi
+if [[ -z "$previous_release" || ! -f "${previous_release}/.release-id" ]]; then
+  echo "base release metadata is missing" >&2
+  exit 7
+fi
+if [[ "$(<"${previous_release}/.release-id")" != "$BASE_ID" ]]; then
+  echo "base release does not match ${BASE_ID}" >&2
+  exit 8
+fi
+
+if [[ ! -f "${RELEASE_DIR}/.release-ready" ]]; then
+  if [[ -e "$RELEASE_DIR" ]]; then
+    rm -rf -- "$RELEASE_DIR"
+  fi
+  install -d -m 0755 "$RELEASE_DIR"
+  tar --create --file - \
+    --exclude='./.env*' \
+    --exclude='./node_modules' \
+    --exclude='./*/node_modules' \
+    --exclude='./.next' \
+    --exclude='./*/.next' \
+    --directory "$previous_release" . \
+    | tar --extract --file - --directory "$RELEASE_DIR" --no-same-owner --no-same-permissions
+  tar --extract --gzip --file "$ARCHIVE_PATH" --directory "$RELEASE_DIR" --no-same-owner --no-same-permissions
+  if [[ "$(<"${RELEASE_DIR}/.release-base")" != "$BASE_ID" ]]; then
+    echo "release archive base does not match ${BASE_ID}" >&2
+    exit 9
+  fi
+  while IFS= read -r deleted_path; do
+    [[ -z "$deleted_path" ]] && continue
+    if [[ "$deleted_path" == /* || "$deleted_path" == "." || "$deleted_path" == ".." || "$deleted_path" == ../* || "$deleted_path" == */../* || "$deleted_path" == */.. ]]; then
+      echo "release deletion contains an unsafe path" >&2
+      exit 10
+    fi
+    rm -rf -- "${RELEASE_DIR}/${deleted_path}"
+  done < "${RELEASE_DIR}/.release-deletes"
+  printf '%s\n' "$RELEASE_ID" > "${RELEASE_DIR}/.release-id"
+  touch "${RELEASE_DIR}/.release-ready"
+fi
+
+for required in compose.yaml Dockerfile deploy/run-postgres-migrations.sh; do
+  if [[ ! -f "${RELEASE_DIR}/${required}" ]]; then
+    echo "release is missing ${required}" >&2
+    exit 11
+  fi
+done
 
 activated=false
 rollback() {

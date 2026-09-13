@@ -46,6 +46,8 @@ jobs:
     steps:
       - name: Check out the verified release
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - name: Configure pinned SSH access
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -56,16 +58,26 @@ jobs:
           chmod 600 "$HOME/.ssh/id_ed25519"
           install -m 600 warmrobot/deploy/known_hosts "$HOME/.ssh/known_hosts"
       - name: Package the release
+        env:
+          BASE_SHA: ${{ github.event.before || github.sha }}
         run: |
           set -Eeuo pipefail
-          tar \
-            --exclude='.env*' \
-            --exclude='node_modules' \
-            --exclude='*/node_modules' \
-            --exclude='.next' \
-            --exclude='*/.next' \
-            -czf "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" \
-            -C warmrobot .
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$GITHUB_SHA"
+          fi
+          stage="$RUNNER_TEMP/warmrobot-release"
+          install -d -m 700 "$stage"
+          printf '%s\n' "$BASE_SHA" > "$stage/.release-base"
+          git diff --diff-filter=D --name-only "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/ \
+            | sed 's#^warmrobot/##' > "$stage/.release-deletes"
+          mapfile -d '' changed_files < <(
+            git diff --diff-filter=ACMRTUXB --name-only -z "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/
+          )
+          if (( ${#changed_files[@]} > 0 )); then
+            git archive --format=tar "$GITHUB_SHA" -- "${changed_files[@]}" \
+              | tar -xf - -C "$stage" --strip-components=1
+          fi
+          tar -czf "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" -C "$stage" .
       - name: Upload the immutable release
         run: |
           set -Eeuo pipefail
@@ -75,10 +87,15 @@ jobs:
             "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" \
             deploy@warmbaby.top:"incoming/warmrobot-${GITHUB_SHA}.tar.gz"
       - name: Activate, migrate, and health-check
+        env:
+          BASE_SHA: ${{ github.event.before || github.sha }}
         run: |
           set -Eeuo pipefail
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$GITHUB_SHA"
+          fi
           ssh \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             root@warmbaby.top \
-            warmrobot-deploy "$GITHUB_SHA"
+            warmrobot-deploy "$GITHUB_SHA" "$BASE_SHA"
