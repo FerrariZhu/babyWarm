@@ -1,5 +1,3 @@
-begin;
-
 create table if not exists public.guide_visual_assets (
   id uuid primary key default gen_random_uuid(),
   category_code text not null references public.categories(code) on delete cascade,
@@ -30,5 +28,3 @@ grant select on public.guide_visual_assets to warmrobot_app;
 
 comment on table public.guide_visual_assets is
   'Self-hosted clothing-guide image registry; storage_path resolves through the application media origin.';
-
-commit;

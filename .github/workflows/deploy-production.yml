@@ -1,0 +1,84 @@
+name: Verify and deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warmrobot-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: warmrobot
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Use Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: warmrobot/package-lock.json
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run regression tests
+        run: npm test
+      - name: Verify types and production builds
+        run: npm run verify
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://warmbaby.top
+    steps:
+      - name: Check out the verified release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Configure pinned SSH access
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          install -m 600 warmrobot/deploy/known_hosts "$HOME/.ssh/known_hosts"
+      - name: Package the release
+        run: |
+          set -Eeuo pipefail
+          tar \
+            --exclude='.env*' \
+            --exclude='node_modules' \
+            --exclude='*/node_modules' \
+            --exclude='.next' \
+            --exclude='*/.next' \
+            -czf "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" \
+            -C warmrobot .
+      - name: Upload the immutable release
+        run: |
+          set -Eeuo pipefail
+          scp \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" \
+            deploy@warmbaby.top:"incoming/warmrobot-${GITHUB_SHA}.tar.gz"
+      - name: Activate, migrate, and health-check
+        run: |
+          set -Eeuo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            deploy@warmbaby.top \
+            sudo -n /usr/local/sbin/warmrobot-deploy "$GITHUB_SHA"

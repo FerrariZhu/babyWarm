@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS public.app_refresh_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES public.app_accounts(id) ON DELETE CASCADE,
@@ -19,5 +17,3 @@ CREATE INDEX IF NOT EXISTS app_refresh_tokens_account_active_idx
 REVOKE ALL ON public.app_refresh_tokens FROM PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.app_refresh_tokens TO warmrobot_app;
 GRANT SELECT, INSERT, UPDATE ON public.login_identities TO warmrobot_app;
-
-COMMIT;
