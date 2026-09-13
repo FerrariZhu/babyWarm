@@ -10,3 +10,12 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Netlify is the public TLS edge. The stateful Next.js runtime stays beside
+# PostgreSQL on the production host, so database credentials never enter
+# Netlify Functions and PostgreSQL remains bound to localhost.
+[[redirects]]
+  from = "/*"
+  to = "https://124.223.189.198/:splat"
+  status = 200
+  force = true
