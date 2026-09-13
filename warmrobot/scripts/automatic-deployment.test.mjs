@@ -4,6 +4,7 @@ import test from "node:test";
 
 const workflowUrl = new URL("../../.github/workflows/deploy-production.yml", import.meta.url);
 const deployScriptUrl = new URL("../deploy/deploy-production.sh", import.meta.url);
+const gatewayScriptUrl = new URL("../deploy/ssh-deploy-gateway.sh", import.meta.url);
 const migrationScriptUrl = new URL("../deploy/run-postgres-migrations.sh", import.meta.url);
 const knownHostsUrl = new URL("../deploy/known_hosts", import.meta.url);
 const migrationsUrl = new URL("../postgres/migrations/", import.meta.url);
@@ -22,8 +23,19 @@ test("main deploys only after the complete verification gate", async () => {
   assert.match(workflow, /needs:\s*verify/);
   assert.match(workflow, /environment:\s*\n\s+name:\s*production/);
   assert.match(workflow, /secrets\.DEPLOY_SSH_KEY/);
-  assert.match(workflow, /sudo -n \/usr\/local\/sbin\/warmrobot-deploy/);
+  assert.match(workflow, /root@warmbaby\.top/);
+  assert.match(workflow, /warmrobot-deploy.*GITHUB_SHA/);
+  assert.doesNotMatch(workflow, /sudo -n/);
   assert.doesNotMatch(workflow, /StrictHostKeyChecking=no/);
+});
+
+test("the privileged SSH identity is restricted to one validated deploy command", async () => {
+  const source = await readFile(gatewayScriptUrl, "utf8");
+
+  assert.match(source, /SSH_ORIGINAL_COMMAND/);
+  assert.match(source, /\^warmrobot-deploy \[0-9a-f\]\{40\}\$/);
+  assert.match(source, /exec \/usr\/local\/sbin\/warmrobot-deploy/);
+  assert.doesNotMatch(source, /\beval\b/);
 });
 
 test("the production deploy is serialized, migrates, health-checks, and can roll back", async () => {
