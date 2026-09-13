@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const workflowUrl = new URL("../../.github/workflows/deploy-production.yml", import.meta.url);
 const deployScriptUrl = new URL("../deploy/deploy-production.sh", import.meta.url);
 const migrationScriptUrl = new URL("../deploy/run-postgres-migrations.sh", import.meta.url);
 const knownHostsUrl = new URL("../deploy/known_hosts", import.meta.url);
+const migrationsUrl = new URL("../postgres/migrations/", import.meta.url);
 
 test("main deploys only after the complete verification gate", async () => {
   const workflow = await readFile(workflowUrl, "utf8");
@@ -48,6 +49,15 @@ test("the migration runner records each successful migration exactly once", asyn
   assert.match(source, /pg_advisory_xact_lock/);
   assert.match(source, /INSERT INTO public\.schema_migrations/);
   assert.match(source, /LC_ALL=C/);
+});
+
+test("migration files leave transaction ownership to the runner", async () => {
+  const migrationNames = (await readdir(migrationsUrl)).filter((name) => name.endsWith(".sql"));
+
+  for (const migrationName of migrationNames) {
+    const source = await readFile(new URL(migrationName, migrationsUrl), "utf8");
+    assert.doesNotMatch(source, /^\s*(BEGIN|COMMIT)\s*;/im, migrationName);
+  }
 });
 
 test("SSH verifies the pinned production host key", async () => {
