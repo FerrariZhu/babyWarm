@@ -80,5 +80,5 @@ jobs:
           ssh \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
-            deploy@warmbaby.top \
-            sudo -n /usr/local/sbin/warmrobot-deploy "$GITHUB_SHA"
+            root@warmbaby.top \
+            warmrobot-deploy "$GITHUB_SHA"
