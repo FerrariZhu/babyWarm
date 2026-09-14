@@ -11,6 +11,8 @@ This journey was derived from the reported “创建宝宝档案失败” screen
 - RED: `node --test scripts/baby-profile-creation.test.mjs` failed with `ERR_MODULE_NOT_FOUND` before the transactional creation function existed.
 - GREEN: the same command passed after creation was moved into one transaction that deactivates the old active baby before inserting the new baby and its warmth preference.
 - Database integration: a rollback-only PostgreSQL check created two babies for one temporary user and observed `{"total":2,"active":1}`. The transaction was rolled back.
+- Production diagnosis: a Netlify request reached the deployed origin but returned PostgreSQL `23503`; container logs showed the authenticated account was missing its required `profiles` parent row.
+- Production RED/GREEN: the regression test failed with 3 statements instead of the required 4, then passed after profile repair was added before active-baby changes.
 - Repository regression: `npm test` passed all 103 tests.
 - Runnable verification: after clearing both `.next` caches, `npm run verify` passed Web/Admin lint, Core/Web/Admin type checks, and both production builds.
 
@@ -22,6 +24,7 @@ This journey was derived from the reported “创建宝宝档案失败” screen
 | 2 | Warmth preference is written only after PostgreSQL returns the created baby | `scripts/baby-profile-creation.test.mjs` | Unit | PASS |
 | 3 | Two creations leave two records and exactly one active record | Rollback-only PostgreSQL check | Integration | PASS |
 | 4 | The optional size parameter keeps an explicit PostgreSQL type | `scripts/self-hosted-api-routes.test.mjs` | Contract | PASS |
+| 5 | A valid authenticated account with no profile row is repaired before baby insertion | `scripts/baby-profile-creation.test.mjs` | Unit | PASS |
 
 ## Coverage and known gaps
 
@@ -33,3 +36,5 @@ The configured local database is the legacy Supabase source schema rather than t
 
 - RED checkpoint: `1d678ce test: reproduce active baby profile creation failure`
 - GREEN checkpoint: `9c9e7d0 fix: create additional baby profiles transactionally`
+- Production RED checkpoint: `d07a059 test: reproduce missing parent profile failure`
+- Production GREEN checkpoint: `0a1064b fix: repair missing profile before baby creation`
