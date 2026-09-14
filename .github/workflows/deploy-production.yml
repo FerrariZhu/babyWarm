@@ -67,9 +67,6 @@ jobs:
           fi
           stage="$RUNNER_TEMP/warmrobot-release"
           install -d -m 700 "$stage"
-          printf '%s\n' "$BASE_SHA" > "$stage/.release-base"
-          git diff --diff-filter=D --name-only "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/ \
-            | sed 's#^warmrobot/##' > "$stage/.release-deletes"
           git archive --format=tar "$GITHUB_SHA" -- warmrobot/ \
               ':(exclude)warmrobot/assets/guide-image-previews/' \
             | tar -xf - -C "$stage" --strip-components=1

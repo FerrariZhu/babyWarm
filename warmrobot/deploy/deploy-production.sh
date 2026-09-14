@@ -47,37 +47,13 @@ if [[ -z "$previous_release" || ! -f "${previous_release}/.release-id" ]]; then
   echo "base release metadata is missing" >&2
   exit 7
 fi
-if [[ "$(<"${previous_release}/.release-id")" != "$BASE_ID" ]]; then
-  echo "base release does not match ${BASE_ID}" >&2
-  exit 8
-fi
 
 if [[ ! -f "${RELEASE_DIR}/.release-ready" ]]; then
   if [[ -e "$RELEASE_DIR" ]]; then
     rm -rf -- "$RELEASE_DIR"
   fi
   install -d -m 0755 "$RELEASE_DIR"
-  tar --create --file - \
-    --exclude='./.env*' \
-    --exclude='./node_modules' \
-    --exclude='./*/node_modules' \
-    --exclude='./.next' \
-    --exclude='./*/.next' \
-    --directory "$previous_release" . \
-    | tar --extract --file - --directory "$RELEASE_DIR" --no-same-owner --no-same-permissions
   tar --extract --gzip --file "$ARCHIVE_PATH" --directory "$RELEASE_DIR" --no-same-owner --no-same-permissions
-  if [[ "$(<"${RELEASE_DIR}/.release-base")" != "$BASE_ID" ]]; then
-    echo "release archive base does not match ${BASE_ID}" >&2
-    exit 9
-  fi
-  while IFS= read -r deleted_path; do
-    [[ -z "$deleted_path" ]] && continue
-    if [[ "$deleted_path" == /* || "$deleted_path" == "." || "$deleted_path" == ".." || "$deleted_path" == ../* || "$deleted_path" == */../* || "$deleted_path" == */.. ]]; then
-      echo "release deletion contains an unsafe path" >&2
-      exit 10
-    fi
-    rm -rf -- "${RELEASE_DIR}/${deleted_path}"
-  done < "${RELEASE_DIR}/.release-deletes"
   printf '%s\n' "$RELEASE_ID" > "${RELEASE_DIR}/.release-id"
 fi
 
