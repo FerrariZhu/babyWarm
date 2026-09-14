@@ -29,7 +29,8 @@ test("main deploys only after the complete verification gate", async () => {
   assert.match(workflow, /git archive --format=tar "\$GITHUB_SHA" -- warmrobot\//);
   assert.match(workflow, /:\(exclude\)warmrobot\/assets\/guide-image-previews\//);
   assert.doesNotMatch(workflow, /git diff.*--diff-filter=ACMRTUXB/);
-  assert.match(workflow, /\.release-base/);
+  assert.doesNotMatch(workflow, /\.release-base/);
+  assert.doesNotMatch(workflow, /\.release-deletes/);
   assert.doesNotMatch(workflow, /sudo -n/);
   assert.doesNotMatch(workflow, /StrictHostKeyChecking=no/);
 });
@@ -43,16 +44,15 @@ test("the privileged SSH identity is restricted to one validated deploy command"
   assert.doesNotMatch(source, /\beval\b/);
 });
 
-test("the production deploy is serialized, migrates, health-checks, and can roll back", async () => {
+test("the production deploy is self-contained, serialized, health-checked, and can roll back", async () => {
   const source = await readFile(deployScriptUrl, "utf8");
 
   assert.match(source, /flock/);
   assert.match(source, /\^\[0-9a-f\]\{40\}\$/);
   assert.match(source, /warmrobot-releases/);
-  assert.match(source, /\.release-base/);
   assert.match(source, /\.release-id/);
-  assert.match(source, /base release does not match/);
-  assert.match(source, /\.release-deletes/);
+  assert.doesNotMatch(source, /base release does not match/);
+  assert.doesNotMatch(source, /--directory "\$previous_release"/);
   assert.match(source, /warmrobot-shared\/\.env\.production/);
   assert.match(source, /run-postgres-migrations\.sh/);
   assert.match(source, /docker compose.*build/);
