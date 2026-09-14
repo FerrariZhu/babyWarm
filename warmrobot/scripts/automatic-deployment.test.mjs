@@ -27,6 +27,7 @@ test("main deploys only after the complete verification gate", async () => {
   assert.match(workflow, /warmrobot-deploy.*GITHUB_SHA/);
   assert.match(workflow, /BASE_SHA/);
   assert.match(workflow, /git archive --format=tar "\$GITHUB_SHA" -- warmrobot\//);
+  assert.match(workflow, /:\(exclude\)warmrobot\/assets\/guide-image-previews\//);
   assert.doesNotMatch(workflow, /git diff.*--diff-filter=ACMRTUXB/);
   assert.match(workflow, /\.release-base/);
   assert.doesNotMatch(workflow, /sudo -n/);
