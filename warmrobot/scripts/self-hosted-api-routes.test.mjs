@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const scriptsDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptsDirectory, "../web/src/app/api");
+const webSourceRoot = path.resolve(scriptsDirectory, "../web/src");
+const webRoot = path.join(webSourceRoot, "app/api");
 
 const routes = [
   "analytics/events/route.ts",
@@ -42,7 +43,7 @@ test("database-backed self-hosted routes use the parameterized query layer", asy
 });
 
 test("baby profile creation gives the optional size parameter an explicit PostgreSQL type", async () => {
-  const source = await readFile(path.join(webRoot, "babies/route.ts"), "utf8");
+  const source = await readFile(path.join(webSourceRoot, "lib/babies/create-baby.ts"), "utf8");
 
   assert.match(source, /CASE WHEN \$9::text IS NULL THEN NULL ELSE now\(\) END/);
 });

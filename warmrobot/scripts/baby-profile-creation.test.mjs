@@ -47,3 +47,32 @@ test("creating a baby deactivates the previous active profile before inserting t
   assert.match(statements[2].statement, /INSERT INTO public\.baby_warmth_preferences/i);
   assert.deepEqual(statements[2].values, ["baby-2", "neutral"]);
 });
+
+test("creation fails before preference insertion when PostgreSQL returns no baby", async () => {
+  const statements = [];
+  const client = {
+    async query(statement) {
+      statements.push(statement);
+      return { rows: [] };
+    },
+  };
+
+  await assert.rejects(
+    createBabyProfile(client, {
+      userId: "user-1",
+      name: "小暖",
+      birthDate: "2024-09-14",
+      gender: "female",
+      heightCm: 88,
+      weightKg: 12.5,
+      avatarUrl: null,
+      wearsDiaper: false,
+      suggestedSize: "90",
+      warmthPreference: "neutral",
+    }),
+    /创建宝宝档案未返回记录/
+  );
+
+  assert.equal(statements.length, 2);
+  assert.doesNotMatch(statements.join("\n"), /baby_warmth_preferences/i);
+});
