@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createBabyProfile } from "../web/src/lib/babies/create-baby.ts";
 
-test("creating a baby deactivates the previous active profile before inserting the new one", async () => {
+test("creating a baby repairs a missing parent profile before changing active babies", async () => {
   const statements = [];
   const createdBaby = {
     id: "baby-2",
@@ -40,12 +40,15 @@ test("creating a baby deactivates the previous active profile before inserting t
   });
 
   assert.deepEqual(result, createdBaby);
-  assert.equal(statements.length, 3);
-  assert.match(statements[0].statement, /UPDATE public\.babies[\s\S]*SET is_active = false/i);
+  assert.equal(statements.length, 4);
+  assert.match(statements[0].statement, /INSERT INTO public\.profiles/i);
+  assert.match(statements[0].statement, /SELECT id,[\s\S]*FROM public\.app_accounts[\s\S]*WHERE id = \$1/i);
+  assert.match(statements[0].statement, /ON CONFLICT \(id\) DO NOTHING/i);
   assert.deepEqual(statements[0].values, ["user-1"]);
-  assert.match(statements[1].statement, /INSERT INTO public\.babies/i);
-  assert.match(statements[2].statement, /INSERT INTO public\.baby_warmth_preferences/i);
-  assert.deepEqual(statements[2].values, ["baby-2", "neutral"]);
+  assert.match(statements[1].statement, /UPDATE public\.babies[\s\S]*SET is_active = false/i);
+  assert.match(statements[2].statement, /INSERT INTO public\.babies/i);
+  assert.match(statements[3].statement, /INSERT INTO public\.baby_warmth_preferences/i);
+  assert.deepEqual(statements[3].values, ["baby-2", "neutral"]);
 });
 
 test("creation fails before preference insertion when PostgreSQL returns no baby", async () => {
@@ -73,6 +76,6 @@ test("creation fails before preference insertion when PostgreSQL returns no baby
     /创建宝宝档案未返回记录/
   );
 
-  assert.equal(statements.length, 2);
+  assert.equal(statements.length, 3);
   assert.doesNotMatch(statements.join("\n"), /baby_warmth_preferences/i);
 });
