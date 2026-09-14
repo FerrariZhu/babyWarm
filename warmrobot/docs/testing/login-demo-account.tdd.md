@@ -82,3 +82,7 @@
 - 再次清理 Web/Admin `.next` 后，`npm test` 103/103 通过，`npm run verify` 的前后台 lint、类型检查与生产构建全部通过。
 - 部署 RED：`ce58339 test: reproduce incomplete production release archive`
 - 部署 GREEN：`a2d7f14 fix: package complete production releases`
+- 首次全量归档为 63 MB；检查确认其中 35.6 MiB 的 `assets/guide-image-previews/` 没有任何生产代码引用。新增 RED 测试要求发布归档明确排除该设计预览目录。
+- 精简后真实归档为 28 MB，完整运行源码、正式 Web 图片与服务器初始化图片均保留；针对性测试 6/6、全量测试 103/103、前后台生产构建再次通过。
+- 精简 RED：`cca6eb1 test: require lean production release archive`
+- 精简 GREEN：`5e9acb5 fix: exclude preview assets from production releases`
