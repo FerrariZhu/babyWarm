@@ -70,13 +70,8 @@ jobs:
           printf '%s\n' "$BASE_SHA" > "$stage/.release-base"
           git diff --diff-filter=D --name-only "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/ \
             | sed 's#^warmrobot/##' > "$stage/.release-deletes"
-          mapfile -d '' changed_files < <(
-            git diff --diff-filter=ACMRTUXB --name-only -z "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/
-          )
-          if (( ${#changed_files[@]} > 0 )); then
-            git archive --format=tar "$GITHUB_SHA" -- "${changed_files[@]}" \
-              | tar -xf - -C "$stage" --strip-components=1
-          fi
+          git archive --format=tar "$GITHUB_SHA" -- warmrobot/ \
+            | tar -xf - -C "$stage" --strip-components=1
           tar -czf "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" -C "$stage" .
       - name: Upload the immutable release
         run: |
