@@ -72,3 +72,13 @@
 
 - RED：`15f30b0 test: reproduce missing login test account panel`
 - GREEN：`68d1fbc fix: restore visible login test account details`
+
+### 生产发布修复
+
+- 首次发布 `65796b3` 的完整 CI 验证成功，但服务器构建报错：新版登录页已进入增量包，其既有依赖 `web/src/lib/auth/login-response.ts` 未进入增量包，旧 release 基线又不包含该文件。
+- 服务器在激活前失败并自动保留上一版，Web/Admin 健康端点持续返回 200。
+- RED：修改 `scripts/automatic-deployment.test.mjs`，要求发布工作流归档完整 `warmrobot/` 目录并禁止只选取变更文件；针对性测试按预期失败。
+- GREEN：发布工作流改为每次从目标提交归档完整应用源码，仍保留删除清单、release 基线校验、迁移、健康检查和自动回滚；针对性测试 6/6 通过。
+- 再次清理 Web/Admin `.next` 后，`npm test` 103/103 通过，`npm run verify` 的前后台 lint、类型检查与生产构建全部通过。
+- 部署 RED：`ce58339 test: reproduce incomplete production release archive`
+- 部署 GREEN：`a2d7f14 fix: package complete production releases`
