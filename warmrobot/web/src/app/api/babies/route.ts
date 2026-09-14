@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { createBabyProfile } from "@/lib/babies/create-baby";
 import { getCurrentUser } from "@/lib/self-hosted/auth";
-import { queryOne } from "@/lib/self-hosted/database";
+import { withTransaction } from "@/lib/self-hosted/database";
 import { isBabyGender, isWarmthPreference, isWearsDiaperChoice, wearsDiaperFromChoice } from "@/lib/baby-profile";
 import { suggestBabyCurrentSize } from "@/lib/suggest-size";
 
@@ -35,6 +36,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "请选择是否仍穿尿布" }, { status: 400 });
   }
   const wearsDiaper = wearsDiaperFromChoice(wearsDiaperRaw);
+  if (wearsDiaper == null) {
+    return NextResponse.json({ error: "请选择是否仍穿尿布" }, { status: 400 });
+  }
 
   const heightCm = Number(body.height_cm);
   const weightKg = Number(body.weight_kg);
@@ -48,43 +52,20 @@ export async function POST(request: Request) {
   const suggestedSize = suggestBabyCurrentSize({ birthDate });
 
   try {
-    const baby = await queryOne<{
-      id: string;
-      name: string;
-      birth_date: string;
-      gender: string;
-      avatar_url: string | null;
-      height_cm: number | null;
-      weight_kg: number | null;
-      current_size_label: string | null;
-      wears_diaper: boolean | null;
-    }>(
-      `WITH created_baby AS (
-         INSERT INTO public.babies
-           (user_id, name, birth_date, gender, activity_level, is_active, height_cm, weight_kg,
-            avatar_url, wears_diaper, current_size_label, current_size_updated_at)
-         VALUES ($1, $2, $3, $4, 'low', true, $5, $6, $7, $8, $9, CASE WHEN $9::text IS NULL THEN NULL ELSE now() END)
-         RETURNING id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper
-       ), created_preference AS (
-         INSERT INTO public.baby_warmth_preferences (baby_id, warmth_preference)
-         SELECT id, $10 FROM created_baby
-       )
-       SELECT id, name, birth_date, gender, avatar_url, height_cm, weight_kg, current_size_label, wears_diaper
-       FROM created_baby`,
-      [
-        user.id,
+    const baby = await withTransaction((client) =>
+      createBabyProfile(client, {
+        userId: user.id,
         name,
         birthDate,
         gender,
         heightCm,
         weightKg,
-        typeof body.avatar_url === "string" ? body.avatar_url : null,
+        avatarUrl: typeof body.avatar_url === "string" ? body.avatar_url : null,
         wearsDiaper,
         suggestedSize,
         warmthPreference,
-      ]
+      })
     );
-    if (!baby) throw new Error("创建宝宝档案未返回记录");
     return NextResponse.json({ ...baby, warmth_preference: warmthPreference });
   } catch (error) {
     console.error("[babies/create]", error);
