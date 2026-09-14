@@ -86,3 +86,9 @@
 - 精简后真实归档为 28 MB，完整运行源码、正式 Web 图片与服务器初始化图片均保留；针对性测试 6/6、全量测试 103/103、前后台生产构建再次通过。
 - 精简 RED：`cca6eb1 test: require lean production release archive`
 - 精简 GREEN：`5e9acb5 fix: exclude preview assets from production releases`
+- 人工恢复时确认旧 release 还残留当前 Git 已删除的 Supabase 认证文件；将实际差异写入删除清单后，服务器 Web/Admin 构建、迁移、容器重建与健康检查全部成功，活动 release 切换为 `d5c9308`。
+- Netlify `/login` 线上 HTML 验收通过：“测试账号”、用途说明、“填入测试账号”、`demo_user_1@warmrobot.dev` 与 `password123` 五项均可见；生产 Web/Admin 健康端点均返回 200。
+- 为避免任何后续 release 再继承陈旧文件，新增 RED 测试要求部署器不得复制 `previous_release`，也不依赖提交基线匹配。
+- GREEN 后发布器从干净目录解压自包含归档，只保留旧 release 用于激活后回滚；针对性测试 6/6、Bash 语法检查、全量测试 103/103 与 `npm run verify` 全部通过。
+- 自包含 RED：`b7961c1 test: reproduce stale release inheritance`
+- 自包含 GREEN：`d4d301e fix: build production releases from clean archives`
