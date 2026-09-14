@@ -39,6 +39,15 @@ export async function createBabyProfile(
   input: CreateBabyProfileInput
 ): Promise<CreatedBabyProfile> {
   await client.query(
+    `INSERT INTO public.profiles (id, display_name)
+     SELECT id, display_name
+       FROM public.app_accounts
+      WHERE id = $1
+     ON CONFLICT (id) DO NOTHING`,
+    [input.userId]
+  );
+
+  await client.query(
     `UPDATE public.babies
         SET is_active = false, updated_at = now()
       WHERE user_id = $1 AND is_active = true`,
