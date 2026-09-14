@@ -71,6 +71,7 @@ jobs:
           git diff --diff-filter=D --name-only "$BASE_SHA" "$GITHUB_SHA" -- warmrobot/ \
             | sed 's#^warmrobot/##' > "$stage/.release-deletes"
           git archive --format=tar "$GITHUB_SHA" -- warmrobot/ \
+              ':(exclude)warmrobot/assets/guide-image-previews/' \
             | tar -xf - -C "$stage" --strip-components=1
           tar -czf "$RUNNER_TEMP/warmrobot-${GITHUB_SHA}.tar.gz" -C "$stage" .
       - name: Upload the immutable release
