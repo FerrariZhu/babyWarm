@@ -17,27 +17,28 @@ test("login renders the versioned first-launch introduction before authenticatio
 
   assert.match(loginPage, /FirstLaunchIntro/);
   assert.match(loginPage, /<FirstLaunchIntro\s*\/\s*>/);
-  assert.match(component, /warmrobot:first-launch-intro:v1/);
-  assert.match(component, /INTRO_DURATION_MS\s*=\s*12_000/);
+  assert.match(component, /warmrobot:first-launch-intro:v2/);
 });
 
-test("intro uses the approved child monologue and can always be skipped", async () => {
+test("intro plays the supplied local video and can always be skipped", async () => {
   const [component, globalsCss] = await Promise.all([
     readFile(componentUrl, "utf8"),
     readFile(globalsCssUrl, "utf8"),
   ]);
 
-  assert.match(component, /嗨，我是暖暖！/);
-  assert.match(component, /暖宝宝会看现在的天气，告诉你今天该穿些什么。/);
-  assert.match(component, /出门带伞、防晒，也会提醒你。每天看一眼，穿得刚刚好！/);
+  assert.match(component, /src="\/animations\/warmbaby-first-launch-v2\.mp4"/);
+  assert.match(component, /<video/);
+  assert.match(component, /autoPlay/);
+  assert.match(component, /playsInline/);
+  assert.match(component, /onEnded=\{finishIntro\}/);
   assert.match(component, />跳过</);
   assert.match(globalsCss, /prefers-reduced-motion:\s*reduce/);
 });
 
-test("intro ships local media and does not expose a replay control", async () => {
+test("intro no longer loads the superseded picture-book media", async () => {
   const component = await readFile(componentUrl, "utf8");
 
-  assert.match(component, /onboarding-boy-keyframe-v1\.png/);
-  assert.match(component, /warmbaby-intro-v1\.wav/);
+  assert.doesNotMatch(component, /onboarding-boy-keyframe-v1\.png/);
+  assert.doesNotMatch(component, /warmbaby-intro-v1\.wav/);
   assert.doesNotMatch(component, /再次观看|重新播放/);
 });
