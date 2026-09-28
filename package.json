@@ -5,7 +5,6 @@
     "dev": "npm run dev --prefix warmrobot",
     "dev:clean": "npm run dev:clean --prefix warmrobot",
     "build": "npm run build --prefix warmrobot",
-    "clean": "npm run clean --prefix warmrobot",
-    "import:catalog": "npm run import:catalog --prefix warmrobot"
+    "clean": "npm run clean --prefix warmrobot"
   }
 }

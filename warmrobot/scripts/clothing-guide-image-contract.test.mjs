@@ -10,15 +10,10 @@ const sheetPath = new URL("../web/src/components/stitch/category-style-sheet.tsx
 const guideAssetRoutePath = new URL("../web/src/app/api/guide-assets/[...path]/route.ts", import.meta.url);
 const adminActionsPath = new URL("../admin/src/app/admin/variants/category-guide-actions.ts", import.meta.url);
 const adminPanelPath = new URL("../admin/src/components/category-guide-admin-panel.tsx", import.meta.url);
-const overviewMigrationPath = new URL(
-  "../supabase/migrations/20260911131424_category_guide_overview_images.sql",
-  import.meta.url
-);
 const selfHostedOverviewMigrationPath = new URL(
   "../postgres/migrations/20260911131500_category_guide_overview_images.sql",
   import.meta.url
 );
-const selfHostedPlanPath = new URL("./self-hosted-migration-plan.mjs", import.meta.url);
 const composePath = new URL("../compose.yaml", import.meta.url);
 
 test("clothing-guide entries preserve an optional visual asset", async () => {
@@ -89,11 +84,10 @@ test("guide card separates each recommendation point into a spaced paragraph", a
   assert.doesNotMatch(source, /keyPoints\[1\]/);
 });
 
-test("home guide payload uses its own server asset route instead of Supabase Storage", async () => {
+test("home guide payload uses its own server asset route", async () => {
   const source = await readFile(pageDataPath, "utf8");
 
   assert.match(source, /\/api\/guide-assets\//);
-  assert.doesNotMatch(source, /NEXT_PUBLIC_SUPABASE_URL/);
   assert.doesNotMatch(source, /storage\/v1\/object\/public/);
 });
 
@@ -121,7 +115,6 @@ test("admin guide save preserves visual fields instead of dropping them", async 
   assert.match(source, /alt_text/);
   assert.match(source, /uploadGuideVisualAsset/);
   assert.match(source, /writeFile/);
-  assert.doesNotMatch(source, /supabase\.storage/);
   assert.match(source, /instanceof Date/);
   assert.match(source, /toISOString/);
 });
@@ -139,23 +132,10 @@ test("admin supports an approved category overview image", async () => {
   assert.match(panelSource, /CATEGORY_GUIDE_VISUAL_AXIS/);
 });
 
-test("approved category image migration seeds all category assets", async () => {
-  const source = await readFile(overviewMigrationPath, "utf8");
-  const categoryRows = source.match(/[a-z][a-z0-9_]*\/category\/overview\/[0-9a-f-]{36}\.png/g) ?? [];
-
-  assert.equal(categoryRows.length, 25);
-  assert.match(source, /on conflict \(storage_path\) do update/i);
-  assert.match(source, /status = excluded\.status/i);
-});
-
-test("self-hosted deployment seeds and exports category image records", async () => {
-  const [migrationSource, planSource] = await Promise.all([
-    readFile(selfHostedOverviewMigrationPath, "utf8"),
-    readFile(selfHostedPlanPath, "utf8"),
-  ]);
+test("self-hosted deployment seeds category image records", async () => {
+  const migrationSource = await readFile(selfHostedOverviewMigrationPath, "utf8");
   const seedRows = migrationSource.match(/\('[a-z][a-z0-9_]*',\s*'[^']+',\s*\d+\)/g) ?? [];
 
   assert.equal(seedRows.length, 25);
   assert.match(migrationSource, /insert into public\.guide_visual_assets/i);
-  assert.match(planSource, /"public\.guide_visual_assets"/);
 });

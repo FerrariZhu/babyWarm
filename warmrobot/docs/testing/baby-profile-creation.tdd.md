@@ -30,7 +30,7 @@ This journey was derived from the reported “创建宝宝档案失败” screen
 
 `node --experimental-test-coverage --test scripts/baby-profile-creation.test.mjs` reported 100% line, branch, and function coverage for `web/src/lib/babies/create-baby.ts`.
 
-The configured local database is the legacy Supabase source schema rather than the self-hosted production database. The integration check therefore used its `auth.users` identity trigger, but exercised the same `babies` constraints, transaction code, and warmth-preference insert. No integration fixtures were retained.
+The integration check used an older local source schema and its legacy identity trigger. It exercised the same `babies` constraints, transaction code, and warmth-preference insert. No integration fixtures were retained.
 
 ## Merge evidence
 

@@ -1,8 +1,7 @@
 /**
- * Tables that contain application data and must be copied from Supabase into
- * the self-hosted PostgreSQL database. Supabase's auth schema is deliberately
- * absent: access tokens, refresh tokens, identities, and GoTrue internals are
- * replaced by the application's own authentication tables.
+ * Tables containing application data for a self-hosted PostgreSQL export.
+ * Account credentials and active sessions are managed separately by the
+ * application's own authentication tables.
  */
 export const SELF_HOSTED_DATA_TABLES = Object.freeze([
   "public.materials",

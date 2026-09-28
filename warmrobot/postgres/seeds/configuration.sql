@@ -1,7 +1,5 @@
 -- WarmRobot configuration-only export for native PostgreSQL 18.
--- Generated from Supabase project ocyzsyjohwyepmfvugrj.
--- Scope: ten configuration tables only. No Supabase Auth, Storage, RLS,
--- policies, users, wardrobe records, or recommendations are included.
+-- Scope: ten configuration tables only. Account and wardrobe records are excluded.
 -- The script is transactional and idempotent.
 --
 -- Source row counts:

@@ -1,5 +1,5 @@
 /**
- * Test Supabase Postgres connection via SUPABASE_DB_URL.
+ * Test the application PostgreSQL connection via WEB_DATABASE_URL or DATABASE_URL.
  *   npm run db:ping
  */
 

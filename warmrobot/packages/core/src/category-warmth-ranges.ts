@@ -6,7 +6,7 @@
  *
  * Selection rule (future DB-driven engine): warmthMin <= requiredWarmth <= warmthMax
  *
- * Source of truth for seed: supabase/migrations/20240101000024_category_warmth_ranges.sql
+ * Category warmth ranges used by the application recommendation engine.
  * Product spec: docs/specs/category-admin.md §4
  */
 import type { ClothingCategory } from "./types";

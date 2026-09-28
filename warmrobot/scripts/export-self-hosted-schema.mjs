@@ -13,10 +13,6 @@ function quoteIdentifier(identifier) {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
-export function rewriteSupabaseAuthReference(definition) {
-  return definition.replaceAll(/\bauth\.users\b/g, "public.app_accounts");
-}
-
 export function terminateSqlStatement(statement) {
   const trimmed = statement.trim();
   return trimmed.endsWith(";") ? trimmed : `${trimmed};`;
@@ -142,7 +138,7 @@ export async function exportSelfHostedSchema({ outputPath = DEFAULT_OUTPUT_PATH 
       lines.push(`CREATE TABLE IF NOT EXISTS public.${quoteIdentifier(table.name)} (${columnSql.join(", ")});`);
       const constraints = await queryConstraints(client, table.oid);
       for (const constraint of constraints) {
-        const definition = rewriteSupabaseAuthReference(constraint.definition);
+        const definition = constraint.definition;
         const statement = `ALTER TABLE public.${quoteIdentifier(table.name)} ADD CONSTRAINT ${quoteIdentifier(constraint.name)} ${definition};`;
         if (constraint.type === "f") foreignKeys.push(statement);
         else lines.push(`DO $$ BEGIN ${statement} EXCEPTION WHEN duplicate_object THEN NULL; END $$;`);
@@ -151,10 +147,10 @@ export async function exportSelfHostedSchema({ outputPath = DEFAULT_OUTPUT_PATH 
     }
     lines.push(...foreignKeys.map((statement) => `DO $$ BEGIN ${statement} EXCEPTION WHEN duplicate_object THEN NULL; END $$;`));
     const functions = await queryFunctions(client);
-    lines.push(...functions.map((fn) => terminateSqlStatement(rewriteSupabaseAuthReference(fn.definition))));
+    lines.push(...functions.map((fn) => terminateSqlStatement(fn.definition)));
     const triggers = await queryTriggers(client);
     lines.push(...triggers.map((trigger) => `DROP TRIGGER IF EXISTS ${quoteIdentifier(trigger.name)} ON public.${quoteIdentifier(trigger.table_name)};`));
-    lines.push(...triggers.map((trigger) => rewriteSupabaseAuthReference(trigger.definition).endsWith(";") ? rewriteSupabaseAuthReference(trigger.definition) : `${rewriteSupabaseAuthReference(trigger.definition)};`));
+    lines.push(...triggers.map((trigger) => terminateSqlStatement(trigger.definition)));
     lines.push(...indexes, "COMMIT;", "");
     const absoluteOutputPath = resolve(outputPath);
     await mkdir(dirname(absoluteOutputPath), { recursive: true });

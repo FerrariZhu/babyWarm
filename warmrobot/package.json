@@ -17,7 +17,6 @@
     "clean": "npm run clean -w web",
     "lint": "npm run lint -w web",
     "lint:admin": "npm run lint -w admin",
-    "verify": "npm run lint && npm run lint:admin && npm run typecheck -w packages/core && npx tsc --noEmit -p web/tsconfig.json && npx tsc --noEmit -p admin/tsconfig.json && npm run build && npm run build:admin",
-    "import:catalog": "npm run import:catalog -w web"
+    "verify": "npm run lint && npm run lint:admin && npm run typecheck -w packages/core && npx tsc --noEmit -p web/tsconfig.json && npx tsc --noEmit -p admin/tsconfig.json && npm run build && npm run build:admin"
   }
 }

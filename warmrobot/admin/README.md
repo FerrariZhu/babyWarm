@@ -11,7 +11,7 @@
 
 旧路径 `/categories` 会自动跳转到 `/admin/categories`。
 
-云服务器数据库需导入 `scripts/export-self-hosted-schema.mjs` 生成的结构及 `postgres/migrations/` 中的增量迁移。
+云服务器数据库的结构可由 `scripts/export-self-hosted-schema.mjs` 从现有自建库导出；增量迁移位于 `postgres/migrations/`，配置数据种子位于 `postgres/seeds/configuration.sql`。
 
 ## 启动
 
