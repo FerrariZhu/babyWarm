@@ -11,12 +11,14 @@ export function LocationPickerSheet({
   onUseCurrentLocation,
   onClose,
   locating = false,
+  locationIssue = null,
 }: {
   currentLabel?: string | null;
   onSelect: (place: PlaceSearchHit) => void;
   onUseCurrentLocation: () => void;
   onClose: () => void;
   locating?: boolean;
+  locationIssue?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
@@ -74,6 +76,11 @@ export function LocationPickerSheet({
       onClose={onClose}
       toolbar={
         <div className="flex flex-col gap-3">
+          {locationIssue ? (
+            <p role="alert" className="rounded-xl bg-error-container px-3 py-2 font-label-sm text-on-error-container">
+              {locationIssue}
+            </p>
+          ) : null}
           <label className="block">
             <span className="sr-only">搜索地点</span>
             <span className="input-sunken group flex min-h-12 items-center gap-2 rounded-2xl border border-outline-variant/50 bg-surface-container-low px-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/40">

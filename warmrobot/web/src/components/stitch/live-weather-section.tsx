@@ -93,6 +93,7 @@ export function LiveWeatherSection({
     hasFallback ? "ready" : "locating"
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [locationIssue, setLocationIssue] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
 
@@ -132,6 +133,7 @@ export function LiveWeatherSection({
       const background = options?.background ?? false;
       const refreshPage = options?.refreshPage ?? !background;
       setErrorMessage(null);
+      setLocationIssue(null);
 
       if (background) {
         setIsSyncing(true);
@@ -170,6 +172,10 @@ export function LiveWeatherSection({
           navigateHome({ refresh: true, at: selectedHourRef.current });
         }
       } catch (error) {
+        if (error instanceof DeviceLocationError) {
+          setLocationIssue(error.message);
+          setOpenSheet("location");
+        }
         if (error instanceof DeviceLocationError && error.code === "denied") {
           setErrorMessage(error.message);
         } else {
@@ -227,6 +233,7 @@ export function LiveWeatherSection({
       syncingRef.current = true;
       setIsSyncing(true);
       setErrorMessage(null);
+      setLocationIssue(null);
       try {
         const res = await fetch("/api/profile/location", {
           method: "POST",
@@ -303,6 +310,7 @@ export function LiveWeatherSection({
         <LocationPickerSheet
           currentLabel={placeLabel}
           locating={isSyncing}
+          locationIssue={locationIssue}
           onSelect={handleSelectPlace}
           onUseCurrentLocation={() =>
             void syncFromDevice({ background: true, refreshPage: true })

@@ -26,9 +26,9 @@ const FAST_OPTIONS: PositionOptions = {
 };
 
 const WATCH_OPTIONS: PositionOptions = {
-  enableHighAccuracy: false,
-  timeout: 30_000,
-  maximumAge: 15 * 60_000,
+  enableHighAccuracy: true,
+  timeout: 15_000,
+  maximumAge: 0,
 };
 
 function mapGeolocationError(error: GeolocationPositionError): DeviceLocationError {
@@ -38,7 +38,7 @@ function mapGeolocationError(error: GeolocationPositionError): DeviceLocationErr
     case error.POSITION_UNAVAILABLE:
       return new DeviceLocationError("unavailable", "无法获取当前位置，请检查设备定位是否开启");
     case error.TIMEOUT:
-      return new DeviceLocationError("timeout", "定位超时，请稍后重试或手动选择城市");
+      return new DeviceLocationError("timeout", "自动定位超时，请搜索城市、区或镇选择地点");
     default:
       return new DeviceLocationError("unknown", "定位失败，请稍后重试");
   }
@@ -65,7 +65,7 @@ function getPositionOnce(options: PositionOptions): Promise<DeviceCoordinates> {
 /** watchPosition 有时比 getCurrentPosition 更容易在桌面端拿到结果 */
 function getPositionViaWatch(options: PositionOptions): Promise<DeviceCoordinates> {
   return new Promise((resolve, reject) => {
-    const timeoutMs = options.timeout ?? 30_000;
+    const timeoutMs = options.timeout ?? 15_000;
     let settled = false;
 
     const finish = (fn: () => void) => {
@@ -84,7 +84,7 @@ function getPositionViaWatch(options: PositionOptions): Promise<DeviceCoordinate
 
     const timer = setTimeout(() => {
       finish(() =>
-        reject(new DeviceLocationError("timeout", "定位超时，请稍后重试或手动选择城市"))
+        reject(new DeviceLocationError("timeout", "自动定位超时，请搜索城市、区或镇选择地点"))
       );
     }, timeoutMs);
   });
