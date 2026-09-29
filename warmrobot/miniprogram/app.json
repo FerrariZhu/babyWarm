@@ -1,4 +1,6 @@
 {
   "pages": ["pages/login/index", "pages/home/index"],
-  "window": { "navigationBarTitleText": "暖宝宝", "navigationBarBackgroundColor": "#fff7ef", "navigationBarTextStyle": "black" }
+  "window": { "navigationBarTitleText": "暖宝宝", "navigationBarBackgroundColor": "#fff7ef", "navigationBarTextStyle": "black" },
+  "requiredPrivateInfos": ["getLocation", "chooseLocation"],
+  "permission": { "scope.userLocation": { "desc": "用于获取当地天气和宝宝穿衣参考" } }
 }

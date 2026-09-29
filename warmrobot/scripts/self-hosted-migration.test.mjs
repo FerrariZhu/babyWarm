@@ -6,9 +6,9 @@ import {
   buildSelfHostedTablePlan,
 } from "./self-hosted-migration-plan.mjs";
 import { buildInsertStatement, filterExistingTables, filterUnsupportedColumns, sqlLiteral } from "./export-self-hosted-data.mjs";
-import { rewriteSupabaseAuthReference, terminateSqlStatement } from "./export-self-hosted-schema.mjs";
+import { terminateSqlStatement } from "./export-self-hosted-schema.mjs";
 
-test("self-hosted migration excludes Supabase-managed authentication state", () => {
+test("data export excludes authentication state", () => {
   const plan = buildSelfHostedTablePlan();
 
   assert.equal(plan.includes("auth.users"), false);
@@ -45,17 +45,6 @@ test("exporter serializes JSON, arrays, quotes, and nulls without interpolating 
   assert.match(statement, /NULL\);$/);
   assert.equal(sqlLiteral(undefined, "text"), "NULL");
   assert.equal(sqlLiteral([], "jsonb"), "'[]'::jsonb");
-});
-
-test("schema export redirects only auth.users foreign keys to local consumer accounts", () => {
-  assert.equal(
-    rewriteSupabaseAuthReference("FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"),
-    "FOREIGN KEY (id) REFERENCES public.app_accounts(id) ON DELETE CASCADE"
-  );
-  assert.equal(
-    rewriteSupabaseAuthReference("FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE"),
-    "FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE"
-  );
 });
 
 test("schema export terminates catalog function definitions before the next statement", () => {

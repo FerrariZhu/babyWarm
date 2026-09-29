@@ -21,7 +21,12 @@ Page({
       saveSession(response.data.session);
       wx.reLaunch({ url: "/pages/home/index" });
     } catch (error) {
-      this.setData({ error: error.message || "网络异常，请重试" });
+      const requestFailed = typeof error?.errMsg === "string" && error.errMsg.startsWith("request:fail");
+      this.setData({
+        error: requestFailed
+          ? "无法连接登录服务，请检查网络及小程序的 request 合法域名。"
+          : error.message || "网络异常，请重试",
+      });
     } finally { this.setData({ loading: false }); }
   },
 });

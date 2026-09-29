@@ -13,8 +13,8 @@ function isValidCoord(value: unknown): value is number {
 
 /**
  * POST /api/profile/location
- * Body: { latitude, longitude } 或 { city }
- * 逆地理 / 正地理 → 拉天气 → 写入 profiles
+ * Body: { latitude, longitude, city? } 或 { city }
+ * 优先按坐标拉天气，地点名称可选；成功后写入 profiles。
  */
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -33,18 +33,21 @@ export async function POST(request: Request) {
   const city = typeof body.city === "string" ? body.city.trim() : "";
   const { latitude, longitude } = body;
   const hasCoords = isValidCoord(latitude) && isValidCoord(longitude);
+  if (city.length > 80) {
+    return NextResponse.json({ error: "地点名称过长" }, { status: 400 });
+  }
   if (hasCoords) {
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       return NextResponse.json({ error: "经纬度超出有效范围" }, { status: 400 });
     }
-  } else if (!city || city.length > 80) {
+  } else if (!city) {
     return NextResponse.json({ error: "请提供有效的地点" }, { status: 400 });
   }
 
   let weather: WeatherResult;
   try {
     weather = await fetchWeather(
-      hasCoords ? { latitude, longitude } : { city },
+      hasCoords ? { latitude, longitude, city: city || null } : { city },
       cachedFetch
     );
   } catch (error) {

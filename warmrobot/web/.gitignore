@@ -1,5 +1,4 @@
-# Supabase / local secrets
-# Copy `.env.local.example` to `.env.local` and fill in values from Supabase Dashboard → Settings → API.
+# Local secrets. Copy `.env.local.example` to `.env.local` and set the server database URL.
 .env.local
 .env*.local
 .env.stitch.local

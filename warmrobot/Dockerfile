@@ -9,7 +9,7 @@ COPY package.json package-lock.json ./
 COPY packages/core/package.json packages/core/package.json
 COPY web/package.json web/package.json
 COPY admin/package.json admin/package.json
-RUN npm ci
+RUN npm ci --registry=https://registry.npmmirror.com
 
 FROM dependencies AS build
 

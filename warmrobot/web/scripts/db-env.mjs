@@ -30,12 +30,10 @@ export function loadEnvFile(path) {
 
 export function getDbUrl() {
   loadEnvFile(join(WEB_ROOT, ".env.local"));
-  const dbUrl = process.env.SUPABASE_DB_URL?.trim();
+  // Maintenance commands need the migration-capable account when both URLs exist.
+  const dbUrl = process.env.DATABASE_URL?.trim() || process.env.WEB_DATABASE_URL?.trim();
   if (!dbUrl) {
-    throw new Error(
-      "请在 web/.env.local 设置 SUPABASE_DB_URL\n" +
-        "路径：Supabase Dashboard → Settings → Database → Connection string → URI"
-    );
+    throw new Error("请在 web/.env.local 设置 WEB_DATABASE_URL 或 DATABASE_URL（自建 PostgreSQL 连接串）");
   }
   return dbUrl;
 }
@@ -44,7 +42,7 @@ export async function withPgClient(fn) {
   const pg = (await import("pg")).default;
   const client = new pg.Client({
     connectionString: getDbUrl(),
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : undefined,
   });
   await client.connect();
   try {

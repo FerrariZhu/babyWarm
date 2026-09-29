@@ -359,7 +359,7 @@ function AppUserEditor({
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="flex flex-col gap-4">
         <div>
-          <h3 className="font-label-md text-on-surface">账号信息（可编辑，写入 Supabase）</h3>
+          <h3 className="font-label-md text-on-surface">账号信息（可编辑，写入云服务器数据库）</h3>
           <p className="font-label-sm mt-1 text-text-soft">
             用户 ID：<span className="font-mono">{user.id}</span>
           </p>
@@ -418,7 +418,7 @@ function AppUserEditor({
           className="font-label-md inline-flex min-h-10 w-fit items-center gap-2 rounded-lg bg-primary px-4 text-on-primary disabled:opacity-60"
         >
           <MaterialIcon name="save" className="text-[18px]" />
-          保存到 Supabase
+          保存到云服务器
         </button>
       </section>
 
@@ -584,7 +584,7 @@ function ManualUserForm({
           className="font-label-md inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 text-on-primary disabled:opacity-60"
         >
           <MaterialIcon name="save" className="text-[18px]" />
-          保存到 Supabase
+          保存到云服务器
         </button>
         {onCancel && (
           <button

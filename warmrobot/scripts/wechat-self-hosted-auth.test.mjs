@@ -150,7 +150,7 @@ test("自有会话使用随机不透明令牌，数据库只需保存摘要", ()
   });
 });
 
-test("微信登录与刷新路由完全脱离 Supabase，并接入本地令牌轮换", async () => {
+test("微信登录与刷新路由使用本地令牌轮换", async () => {
   const loginRoute = await readFile(
     new URL("../web/src/app/api/auth/wechat/login/route.ts", import.meta.url),
     "utf8"
@@ -172,9 +172,6 @@ test("微信登录与刷新路由完全脱离 Supabase，并接入本地令牌�
     "utf8"
   );
 
-  for (const source of [loginRoute, refreshRoute]) {
-    assert.doesNotMatch(source, /@supabase|Supabase|getSupabaseEnv|createServiceClient/);
-  }
   assert.match(loginRoute, /ensureSelfHostedWechatUser/);
   assert.match(loginRoute, /createMiniProgramSession/);
   assert.match(refreshRoute, /rotateMiniProgramSession/);

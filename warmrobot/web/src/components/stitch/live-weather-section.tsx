@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PlaceSearchHit, WeatherResult } from "@warmrobot/core/client";
 import { DeviceLocationError, getDeviceLocation } from "@/lib/device-location";
+import { resolveDevicePlace } from "@/lib/device-place";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { WeatherWidget, WeatherContextRow } from "@/components/stitch/weather-widget";
 import { MaterialIcon } from "@/components/stitch/material-icon";
@@ -139,24 +140,15 @@ export function LiveWeatherSection({
       }
 
       try {
-        const coords = await Promise.race([
-          getDeviceLocation(),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new DeviceLocationError("timeout", "定位超时，将使用已保存的城市天气")
-                ),
-              15_000
-            )
-          ),
-        ]);
+        const coords = await getDeviceLocation();
+        const city = await resolveDevicePlace(coords.latitude, coords.longitude);
         const res = await fetch("/api/profile/location", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             latitude: coords.latitude,
             longitude: coords.longitude,
+            ...(city ? { city: city.slice(0, 80) } : {}),
           }),
         });
 
@@ -207,7 +199,7 @@ export function LiveWeatherSection({
   useEffect(() => {
     if (autoSyncedRef.current) return;
     autoSyncedRef.current = true;
-    if (fallbackWeatherRef.current) return;
+    if (fallbackWeatherRef.current && fallbackLocationRef.current !== "当前位置") return;
     void syncFromDevice({
       background: false,
       refreshPage: false,
@@ -230,7 +222,7 @@ export function LiveWeatherSection({
   );
 
   const savePlace = useCallback(
-    async (body: { latitude: number; longitude: number } | { city: string }) => {
+    async (body: { latitude: number; longitude: number; city?: string } | { city: string }) => {
       if (syncingRef.current) return;
       syncingRef.current = true;
       setIsSyncing(true);
@@ -269,6 +261,9 @@ export function LiveWeatherSection({
       void savePlace({
         latitude: place.latitude,
         longitude: place.longitude,
+        city: place.admin1 && place.admin1 !== place.name
+          ? `${place.name}（${place.admin1}）`.slice(0, 80)
+          : place.name.slice(0, 80),
       });
     },
     [savePlace]
@@ -284,7 +279,9 @@ export function LiveWeatherSection({
 
   const timeSource = selectedHourKey ?? weather?.observedAt ?? observedAtDisplay;
   const timeLabel = timeSource ? formatHourChipDisplay(timeSource) : "选择时间";
-  const placeLabel = locationLabel?.trim() || (status === "locating" ? "定位中…" : "选择地点");
+  const placeLabel = locationLabel?.trim() && locationLabel !== "当前位置"
+    ? locationLabel.trim()
+    : status === "locating" ? "定位中…" : "选择具体地点";
 
   const context = {
     timeLabel,
@@ -304,7 +301,7 @@ export function LiveWeatherSection({
       ) : null}
       {openSheet === "location" ? (
         <LocationPickerSheet
-          currentLabel={locationLabel}
+          currentLabel={placeLabel}
           locating={isSyncing}
           onSelect={handleSelectPlace}
           onUseCurrentLocation={() =>

@@ -1,0 +1,11 @@
+{
+  "miniprogramRoot": "./warmrobot/miniprogram/",
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "enhance": true
+  },
+  "compileType": "miniprogram",
+  "appid": "wx5bcd9ff27d89c386"
+}

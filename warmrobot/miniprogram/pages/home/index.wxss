@@ -1,0 +1,17 @@
+.page { padding: 56rpx 40rpx 80rpx; }
+.heading { font-size: 48rpx; font-weight: 700; }
+.hint { margin-top: 12rpx; color: #806d62; font-size: 27rpx; }
+.loading { margin: 80rpx 0; text-align: center; }
+.weather-card { margin-top: 40rpx; padding: 40rpx; border-radius: 32rpx; background: #fff; box-shadow: 0 12rpx 40rpx rgba(88, 54, 35, .08); }
+.location-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
+.location { font-size: 30rpx; font-weight: 600; }
+.source { color: #806d62; font-size: 23rpx; white-space: nowrap; }
+.temperature { margin-top: 28rpx; font-size: 112rpx; font-weight: 600; line-height: 1.1; }
+.unit { font-size: 42rpx; vertical-align: top; }
+.condition { margin-top: 6rpx; font-size: 36rpx; }
+.metrics { margin-top: 30rpx; display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; color: #806d62; font-size: 26rpx; }
+.metrics text { color: #3a2a22; font-weight: 600; }
+.updated { margin-top: 30rpx; color: #806d62; font-size: 23rpx; }
+.secondary { margin-top: 20rpx; color: #d96845; background: #fff; border: 2rpx solid #d96845; border-radius: 999rpx; }
+.settings, .logout { margin-top: 20rpx; background: transparent; color: #806d62; font-size: 25rpx; }
+.credit { margin-top: 36rpx; color: #806d62; text-align: center; font-size: 22rpx; }

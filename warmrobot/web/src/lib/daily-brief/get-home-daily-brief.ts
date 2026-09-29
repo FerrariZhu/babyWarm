@@ -8,7 +8,6 @@ import {
   isBriefAdviceCurrent,
   mapCategoryGuideRow,
   mapVariantCopyRow,
-  reverseGeocode,
   type BabyProfile,
   type CategoryIconMeta,
   type HomeDailyBrief,
@@ -24,7 +23,6 @@ import type { DbBaby, DbProfile } from "@/lib/db/types";
 import { requireUser } from "@/lib/self-hosted/session";
 import { query, queryOne } from "@/lib/self-hosted/database";
 import { getWeatherForProfile } from "@/lib/weather";
-import { hasValidCoordinates } from "@/lib/geo";
 import {
   formatObservedAtDisplay,
   isBriefStale,
@@ -53,17 +51,6 @@ async function resolveLocationLabel(
   profile: Pick<DbProfile, "city" | "latitude" | "longitude"> | null,
   weather: WeatherResult
 ): Promise<string> {
-  if (hasValidCoordinates(profile?.latitude, profile?.longitude)) {
-    try {
-      const geo = await reverseGeocode(
-        Number(profile!.latitude),
-        Number(profile!.longitude)
-      );
-      if (geo.name) return geo.name;
-    } catch (error) {
-      console.error("[getHomeDailyBrief] reverseGeocode", error);
-    }
-  }
   if (profile?.city?.trim()) return profile.city.trim();
   if (weather.location?.name) return weather.location.name;
   return "当前位置";

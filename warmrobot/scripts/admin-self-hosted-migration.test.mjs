@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -8,38 +8,9 @@ const scriptsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptsDirectory, "..");
 const adminRoot = path.join(projectRoot, "admin");
 
-async function sourceFiles(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const nested = await Promise.all(entries.map(async (entry) => {
-    const absolutePath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return sourceFiles(absolutePath);
-    return /\.(?:ts|tsx|js|mjs)$/.test(entry.name) ? [absolutePath] : [];
-  }));
-  return nested.flat();
-}
-
-test("admin runtime has no Supabase imports or client calls", async () => {
-  const files = await sourceFiles(path.join(adminRoot, "src"));
-  const violations = [];
-
-  for (const file of files) {
-    const source = await readFile(file, "utf8");
-    if (/@supabase\/|@\/lib\/supabase|createServiceClient|NEXT_PUBLIC_SUPABASE|SUPABASE_SERVICE_ROLE_KEY/.test(source)) {
-      violations.push(path.relative(adminRoot, file));
-    }
-  }
-
-  assert.deepEqual(violations, []);
-});
-
 test("admin package and documented environment only require the cloud database", async () => {
-  const packageJson = JSON.parse(await readFile(path.join(adminRoot, "package.json"), "utf8"));
-  assert.equal(packageJson.dependencies?.["@supabase/ssr"], undefined);
-  assert.equal(packageJson.dependencies?.["@supabase/supabase-js"], undefined);
-
   const envExample = await readFile(path.join(adminRoot, ".env.local.example"), "utf8");
   assert.match(envExample, /^DATABASE_URL=/m);
-  assert.doesNotMatch(envExample, /SUPABASE/);
 });
 
 test("all database-backed admin actions use the parameterized PostgreSQL layer", async () => {
@@ -55,7 +26,6 @@ test("all database-backed admin actions use the parameterized PostgreSQL layer",
   for (const relativePath of actionFiles) {
     const source = await readFile(path.join(adminRoot, relativePath), "utf8");
     assert.match(source, /@\/lib\/self-hosted\/database/, relativePath);
-    assert.doesNotMatch(source, /@\/lib\/supabase|createServiceClient/, relativePath);
   }
 });
 

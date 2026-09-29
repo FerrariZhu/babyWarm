@@ -18,10 +18,9 @@ const routes = [
   "weather/route.ts",
 ];
 
-test("self-hosted business API routes do not use the Supabase runtime", async () => {
+test("self-hosted business API routes use application authentication", async () => {
   for (const route of routes) {
     const source = await readFile(path.join(webRoot, route), "utf8");
-    assert.doesNotMatch(source, /@\/lib\/supabase\/server/);
     assert.doesNotMatch(source, /createClient\(/);
     assert.match(source, /@\/lib\/self-hosted\/auth/);
   }

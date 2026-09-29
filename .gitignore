@@ -1,5 +1,8 @@
 node_modules/
+project.private.config.json
 .next/
+.next-dev/
+.local-postgres/
 .next-verify/
 .env
 .env.*
@@ -25,9 +28,6 @@ warmrobot/web/PRODUCT.md
 warmrobot/backend/
 
 # 演示/测试数据与一次性脚本
-warmrobot/supabase/migrations/_archive/
-warmrobot/supabase/migrations/*seed_mock_data*
-warmrobot/supabase/scripts/
 warmrobot/web/scripts/seed-demo-user.mjs
 warmrobot/web/scripts/legacy/
 warmrobot/web/scripts/test-*.mjs

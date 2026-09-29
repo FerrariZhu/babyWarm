@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -20,8 +20,9 @@ let pickClosestVariant;
 before(async () => {
   compiledCoreDir = await mkdtemp(join(tmpdir(), "warmrobot-unified-outfit-"));
   await execFileAsync(
-    join(projectRoot, "node_modules/.bin/tsc"),
+    process.execPath,
     [
+      join(projectRoot, "node_modules/typescript/bin/tsc"),
       "--target",
       "ES2022",
       "--module",
@@ -39,8 +40,8 @@ before(async () => {
     { cwd: projectRoot }
   );
 
-  ({ buildCategoryAdvice, pickClosestVariant, seasonFromDate, timeSlotFromObservation } = await import(join(compiledCoreDir, "category-advice.js")));
-  ({ summarizeOutfit, parseSaveDressingRecordInput } = await import(join(compiledCoreDir, "dressing-records.js")));
+  ({ buildCategoryAdvice, pickClosestVariant, seasonFromDate, timeSlotFromObservation } = await import(pathToFileURL(join(compiledCoreDir, "category-advice.js")).href));
+  ({ summarizeOutfit, parseSaveDressingRecordInput } = await import(pathToFileURL(join(compiledCoreDir, "dressing-records.js")).href));
 });
 
 after(async () => {

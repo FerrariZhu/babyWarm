@@ -1,9 +1,15 @@
 import type { WeatherSnapshot } from "./types";
 
-const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
-const GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
-const REVERSE_GEOCODE_URL =
-  "https://api.bigdatacloud.net/data/reverse-geocode-client";
+const OPEN_METEO_API_KEY = process.env.OPEN_METEO_API_KEY;
+const FORECAST_URL = OPEN_METEO_API_KEY
+  ? "https://customer-api.open-meteo.com/v1/forecast"
+  : "https://api.open-meteo.com/v1/forecast";
+const GEOCODING_URL = OPEN_METEO_API_KEY
+  ? "https://customer-geocoding-api.open-meteo.com/v1/search"
+  : "https://geocoding-api.open-meteo.com/v1/search";
+// Use a separately operated Nominatim instance. The public OSM endpoint is not
+// intended as a production geocoder for an app.
+const REVERSE_GEOCODE_URL = process.env.NOMINATIM_REVERSE_URL;
 
 /** WMO weather interpretation codes → 中文 */
 const WMO_TEXT: Record<number, string> = {
@@ -175,7 +181,7 @@ function pickCityName(data: {
 }
 
 /**
- * Prefer town-level Chinese label (省市区镇) when BigDataCloud localityInfo is present.
+ * Format legacy hierarchical location data when it is present.
  * Falls back honestly to city/district when town is unavailable.
  */
 export function formatTownLevelLocationLabel(data: {
@@ -206,36 +212,46 @@ export function formatTownLevelLocationLabel(data: {
   return `${fallback}（未精确到镇）`;
 }
 
-/** 经纬度 → 城市名（BigDataCloud 免费逆地理编码，无需 Key） */
+/** 经纬度 → 地名。未配置反查服务时，天气仍可按坐标查询。 */
 export async function reverseGeocode(
   latitude: number,
   longitude: number,
   fetchImpl: WeatherFetch = fetch
 ): Promise<GeoLocation> {
+  if (!REVERSE_GEOCODE_URL) {
+    return { latitude, longitude, name: "当前位置" };
+  }
   const url = new URL(REVERSE_GEOCODE_URL);
-  url.searchParams.set("latitude", String(latitude));
-  url.searchParams.set("longitude", String(longitude));
-  url.searchParams.set("localityLanguage", "zh");
+  url.searchParams.set("lat", String(latitude));
+  url.searchParams.set("lon", String(longitude));
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "zh");
 
-  const res = await fetchImpl(url.toString());
+  const res = await fetchImpl(url.toString(), { signal: AbortSignal.timeout(2500) });
   if (!res.ok) {
     throw new Error(`Reverse geocoding failed: ${res.status}`);
   }
 
   const data = (await res.json()) as {
-    city?: string;
-    locality?: string;
-    principalSubdivision?: string;
-    countryName?: string;
-    localityInfo?: { administrative?: ReverseAdmin[] };
+    address?: {
+      state?: string; province?: string; city?: string; town?: string;
+      county?: string; city_district?: string; suburb?: string; village?: string;
+      country?: string;
+    };
   };
+  const address = data.address ?? {};
+  const parts = [address.province ?? address.state, address.city ?? address.county,
+    address.city_district ?? address.suburb, address.town ?? address.village]
+    .filter((part): part is string => Boolean(part?.trim()));
+  const name = [...new Set(parts)].join("") || "当前位置";
 
   return {
     latitude,
     longitude,
-    name: formatTownLevelLocationLabel(data),
-    country: data.countryName,
-    admin1: data.principalSubdivision,
+    name,
+    country: address.country,
+    admin1: address.province ?? address.state,
   };
 }
 
@@ -258,6 +274,7 @@ async function fetchGeocodingHits(
   url.searchParams.set("count", String(count));
   url.searchParams.set("language", "zh");
   url.searchParams.set("format", "json");
+  if (OPEN_METEO_API_KEY) url.searchParams.set("apikey", OPEN_METEO_API_KEY);
 
   const res = await fetchImpl(url.toString());
   if (!res.ok) {
@@ -361,6 +378,7 @@ export async function fetchWeatherByCoords(
   // Open-Meteo otherwise defaults to km/h.
   url.searchParams.set("wind_speed_unit", "ms");
   url.searchParams.set("timezone", "auto");
+  if (OPEN_METEO_API_KEY) url.searchParams.set("apikey", OPEN_METEO_API_KEY);
   if (atHourKey) {
     url.searchParams.set("hourly", CURRENT_VARS);
     url.searchParams.set("forecast_days", "2");
@@ -401,9 +419,13 @@ export async function fetchWeather(
   if (hasValidCoords(input.latitude, input.longitude)) {
     const lat = Number(input.latitude);
     const lng = Number(input.longitude);
-    location = input.city?.trim()
-      ? { latitude: lat, longitude: lng, name: input.city.trim() }
-      : await reverseGeocode(lat, lng, fetchImpl);
+    const label = input.city?.trim();
+    const locationPromise = !label && REVERSE_GEOCODE_URL
+      ? reverseGeocode(lat, lng, fetchImpl).catch(() => ({ latitude: lat, longitude: lng, name: "当前位置" }))
+      : Promise.resolve({ latitude: lat, longitude: lng, name: label || "当前位置" });
+    const snapshot = await fetchWeatherByCoords(lat, lng, fetchImpl, { at: input.at });
+    location = await locationPromise;
+    return { ...snapshot, location, fetchedAt: new Date().toISOString() };
   } else if (input.city?.trim()) {
     location = await geocodeCity(input.city, fetchImpl);
   } else {

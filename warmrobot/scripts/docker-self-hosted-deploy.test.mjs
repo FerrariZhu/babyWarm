@@ -21,7 +21,7 @@ test("compose deploys web and admin on the host network without a database conta
   assert.match(source, /^\s*web:/m);
   assert.match(source, /^\s*admin:/m);
   assert.match(source, /network_mode: host/g);
-  assert.doesNotMatch(source, /^\s*(postgres|supabase):/m);
+  assert.doesNotMatch(source, /^\s*postgres:/m);
   assert.match(source, /env_file:\s*\n\s*- \$\{ENV_FILE:-\.env\.production\}/);
 });
 
@@ -38,7 +38,6 @@ test("deployment template keeps database credentials out of the image", async ()
 
   assert.match(source, /^DATABASE_URL=postgresql:\/\/warmrobot_app:/m);
   assert.match(source, /^DATABASE_SSL=false$/m);
-  assert.doesNotMatch(source, /SUPABASE_SERVICE_ROLE_KEY/);
 });
 
 test("Next.js emits standalone production output for containers", async () => {

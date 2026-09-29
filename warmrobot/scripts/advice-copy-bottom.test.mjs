@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -18,8 +18,9 @@ let isBriefAdviceCurrent;
 before(async () => {
   compiledCoreDir = await mkdtemp(join(tmpdir(), "warmrobot-advice-copy-"));
   await execFileAsync(
-    join(projectRoot, "node_modules/.bin/tsc"),
+    process.execPath,
     [
+      join(projectRoot, "node_modules/typescript/bin/tsc"),
       "--target",
       "ES2022",
       "--module",
@@ -40,9 +41,9 @@ before(async () => {
     formatAdviceConclusionBlocks,
     formatDressingMethod,
     formatOutfitAdviceRows,
-  } = await import(join(compiledCoreDir, "advice-copy.js")));
+  } = await import(pathToFileURL(join(compiledCoreDir, "advice-copy.js")).href));
   ({ isBriefAdviceCurrent } = await import(
-    join(compiledCoreDir, "daily-brief-types.js")
+    pathToFileURL(join(compiledCoreDir, "daily-brief-types.js")).href
   ));
 });
 
