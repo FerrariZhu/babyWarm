@@ -59,3 +59,25 @@ test("商业 API Key 仅发送至 Open-Meteo 客户端域名", async () => {
   const result = await weather.fetchWeather({ latitude: 30, longitude: 120 }, fetchImpl);
   assert.equal(result.text, "阴");
 });
+
+test("天气服务短暂连接失败后按原坐标重试", async () => {
+  const weather = loadWeather({});
+  const calls = [];
+  const fetchImpl = async (input) => {
+    calls.push(input);
+    if (calls.length === 1) throw new Error("fetch failed");
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ current: {
+        temperature_2m: 20, apparent_temperature: 19,
+        relative_humidity_2m: 60, wind_speed_10m: 2,
+        surface_pressure: 1012, weather_code: 0,
+      } }),
+    };
+  };
+  const result = await weather.fetchWeatherByCoords(39.9, 116.4, fetchImpl);
+  assert.equal(result.temp, 20);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0], calls[1]);
+});

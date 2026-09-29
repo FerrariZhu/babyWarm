@@ -384,7 +384,16 @@ export async function fetchWeatherByCoords(
     url.searchParams.set("forecast_days", "2");
   }
 
-  const res = await fetchImpl(url.toString());
+  let res: Response;
+  try {
+    res = await fetchImpl(url.toString());
+  } catch {
+    // A second request can recover from a brief DNS or connection failure.
+    res = await fetchImpl(url.toString());
+  }
+  if ([429, 502, 503, 504].includes(res.status)) {
+    res = await fetchImpl(url.toString());
+  }
   if (!res.ok) {
     throw new Error(`Weather API failed: ${res.status}`);
   }

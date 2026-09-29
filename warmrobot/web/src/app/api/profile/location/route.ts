@@ -51,8 +51,11 @@ export async function POST(request: Request) {
       cachedFetch
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "天气获取失败";
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error("[profile/location/weather]", error);
+    return NextResponse.json(
+      { error: "天气服务暂时无法连接，请稍后重试" },
+      { status: 502 }
+    );
   }
 
   try {

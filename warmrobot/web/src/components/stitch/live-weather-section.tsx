@@ -382,7 +382,7 @@ export function LiveWeatherSection({
           <div className="flex flex-col items-center gap-2 rounded-xl bg-error-container px-4 py-3 text-center">
             <p className="font-body-md text-on-error-container">{errorMessage}</p>
             <p className="font-label-sm text-on-error-container/80">
-              当前天气可能不是你所在位置的天气，请确认地点后再试
+              当前显示的是{placeLabel}的天气，位置更新尚未成功
             </p>
             <button
               type="button"
