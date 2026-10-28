@@ -1,26 +1,55 @@
-# 微信小程序调试
+# 暖宝宝微信小程序
 
-## 开发者工具本地调试（域名备案期间）
+当前原生页面闭环：**微信手机号登录 → 宝宝档案 → 当地天气 → 今日穿衣建议**。
 
-1. 在微信开发者工具导入 `D:\暖宝宝\warmrobot`。该目录的 `project.config.json` 已指向 `miniprogram/`，并使用正式小程序 AppID。
-2. 在 `warmrobot/` 安装依赖（`npm install`），将 `web/.env.local.example` 复制为 `web/.env.local`，填入可用的 `WEB_DATABASE_URL`、`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`。微信凭证要与开发者工具项目的 AppID 一致；它们只保存在服务端的 `.env.local` 中。
-3. 在 `warmrobot/` 运行 `npm run dev`，保持终端打开，确认 `http://127.0.0.1:3000` 可以访问。
-4. 在开发者工具的「详情 → 本地设置」勾选「不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书」，再点击「编译」。模拟器会自动请求本机 `http://127.0.0.1:3000`；调试器的 Network 面板可查看 `/api/auth/wechat/login` 的状态码和响应。
+- `pages/login/index`：恢复已保存的登录状态，或使用微信手机号授权登录。
+- `pages/profile/index`：查看、创建、编辑与切换宝宝档案；填写生日、身高、体重、温度偏好及尿布状态。
+- `pages/home/index`：定位或手动选点、查看天气、切换宝宝并查看完整穿搭和天气提醒。
+- 建议由服务端既有 `@warmrobot/core` 规则生成，不信任客户端提交的天气或其他用户的宝宝编号。建议仅供日常穿衣参考，不替代照护者判断。
 
-这仅用于电脑上的开发者工具模拟器。手机号登录仍会由本地服务端向微信换取凭证，并写入 PostgreSQL；没有可用数据库或匹配的微信凭证时，页面和布局仍可调试，但登录不会成功。手机预览不会连接电脑的 `127.0.0.1`，需要另行准备手机可访问的测试 API 地址；正式发布前仍需完成域名及合法域名配置。
+## 本地联调
 
-## 真机联调与发布
+1. 在微信开发者工具导入仓库根目录、`warmrobot/` 或 `warmrobot/miniprogram/`；三个 `project.config.json` 已统一 AppID，并分别指向正确的小程序目录。开发者账号仍必须具备该 AppID 的项目权限。
+2. 在 `warmrobot/` 运行 `npm ci`，将 `web/.env.local.example` 复制为 `web/.env.local`。仅在该服务端文件中配置测试 PostgreSQL 连接串 `WEB_DATABASE_URL`、`WECHAT_APP_ID`、`WECHAT_APP_SECRET`。不要把秘密放入小程序源码、截图或聊天。
+3. 启动 `npm run dev`，确认 API 服务监听本机 3000 端口。`miniprogram/config.js` 仅在开发者工具模拟器中使用 `http://127.0.0.1:3000`；真机使用 `https://warmbaby.top`。
+4. 仅限本地模拟器：在「详情 → 本地设置」关闭合法域名、业务域名、TLS 与 HTTPS 证书校验，再编译。正式发布与真机测试不能依赖该选项。
+5. 新建一次性本地测试库可参考 `postgres/local-dev/README.md` 与 `bootstrap.sql`；该脚本不是生产完整 schema，不能应用到线上。使用合成宝宝资料与测试地点。
 
-1. 确认 `config.js` 中的线上 HTTPS API 域名可访问，并在微信公众平台的“开发管理 → 开发设置 → 服务器域名”中添加该域名为 request 合法域名。
-2. 在微信开发者工具导入本目录，把 `project.config.json` 的 `appid` 改为正式小程序 AppID。
-3. 在 Web 服务的部署环境配置 `WECHAT_APP_ID`、`WECHAT_APP_SECRET` 与 `DATABASE_URL`，并应用 `postgres/migrations/20260910221000_wechat_self_hosted_auth.sql`。登录身份与会话只写入云服务器 PostgreSQL。
-4. 使用真机点击“微信手机号登录”。首次登录会建立账户；已在同手机号账户存在数据时会直接复用该账户。
+如果开发者工具在用户电脑、API 在 dot 云端，用户电脑的 `127.0.0.1` **不指向 dot**；需要让测试 API 通过可访问的 HTTPS 测试域名提供服务，并在测试配置中明确替换地址。当前没有自动建立隧道或部署服务。
 
-## 天气与定位
+### 接口
 
-- 登录后首页调用 `wx.getLocation` 获取 WGS84 坐标，设备端直接请求 BigDataCloud 的免费客户端逆地理接口，随后通过自己的 HTTPS API 域名请求 `/api/profile/location`；服务端按坐标查询天气，地名反查失败不会挡住天气。还需要在微信公众平台把 `https://api-bdc.net` 加入 request 合法域名。
-- 用户可以用微信原生 `wx.chooseLocation` 手动选择地点；手动选择会保留，后续刷新更新该地点天气，点击“使用当前位置”才切回设备定位。最近一次天气缓存在设备上，30 分钟内再次打开直接显示。
-- 在微信公众平台完成 `getLocation`、`chooseLocation` 对应的隐私保护指引和定位权限说明，并披露定位坐标会由设备发送给 BigDataCloud 用于地名查询。用真机分别验证首次授权、拒绝、设置页重新授权、手动选点和下拉刷新。`app.json` 已声明所需隐私接口及权限用途。
-- 正式商用前为 Open-Meteo 配置商用 API Key。自动定位的地名由当前设备直接向 BigDataCloud 查询；若查询失败，可在服务端设置自建 Nominatim 的 `NOMINATIM_REVERSE_URL` 作为补充。两者都不可用时，页面提示“选择具体地点”，天气仍按坐标返回。不要将 OpenStreetMap 公共 Nominatim 端点直接作为生产服务。
+- `POST /api/auth/wechat/login`、`POST /api/auth/wechat/refresh`：短期微信凭证换取应用会话与轮换。
+- `POST /api/auth/wechat/logout`：核对访问/刷新令牌属于同一个账户，原子撤销本次提交的两个令牌；不注销其他设备。
+- `GET /api/babies`、`POST /api/babies`、`PATCH /api/babies/:id`：仅操作当前用户档案。
+- `POST /api/profile/location`、`GET /api/weather`：保存选点并返回天气。
+- `GET /api/miniprogram/daily-brief?babyId=...`：返回选中宝宝、天气和穿衣建议；缺少档案/位置或天气暂不可用时返回明确状态。无权访问的宝宝不会回退到其他账户资料。
 
-不会把 AppSecret、数据库密码或 refresh token 写入小程序源码。刷新令牌只保存在设备本地；真机请求发送到已登记的 HTTPS 域名，开发者工具模拟器可请求本地调试服务。
+登录刷新采用单次并发轮换；临时网络/服务失败不会清除刷新令牌。退出或重新登录后，旧响应不能恢复旧会话。“退出登录”会阻止新的受保护请求，等待已知进行中的刷新返回，再尝试撤销返回的最新访问/刷新令牌，最后清除本机登录与天气/宝宝选择缓存。退出接口请求最长等待 5 秒（如已有刷新正在进行，会先等待其完成或超时）；如果网络或服务失败，仍退出本机，并在登录页明确提示“服务器会话撤销未确认”。
+
+服务端撤销范围仅为**本次提交且归属同一账户的一对令牌**，可以重复调用，不会顺带撤销其他设备。如果刷新在服务端成功、但响应丢失，客户端无法获知新令牌，此时不能保证撤销未见到的后继令牌；页面不会宣称撤销成功。目前没有全设备/整个会话族撤销功能，不应把本次退出当作全设备安全退出。
+
+## 自动化检查
+
+在 `warmrobot/` 执行：
+
+```bash
+npm test
+npm run verify
+```
+
+`npm test` 包含原生页面 VM 模拟测试：冷启动恢复登录、重复点击、刷新轮换并发、网络失败、退出/卸载后的迟到响应、档案创建编辑切换、生日校验、建议空态和权限隔离。`npm run verify` 覆盖 Web/Admin lint、TypeScript 与两端生产构建。
+
+这些检查**不等于微信编译器、真机或真实数据库联调**。本次 dot 云环境尚未安装可运行的官方开发者工具，且没有提供数据库与微信服务端凭证，因此官方编译/上传、真实手机号授权、数据库迁移与真机界面验收仍未执行。
+
+## 发布前必须确认
+
+- 线上 `https://warmbaby.top` 的域名归属、合规配置、证书与 API 可达性，并在公众平台配置 request 合法域名。仓库 Nginx 示例仍包含 IP 主机/证书配置，不能仅凭示例认定域名 HTTPS 正确；不要未经核对直接替换线上配置。
+- 服务端 AppID/AppSecret 与小程序 AppID 一致，账号具备手机号登录能力，生产 PostgreSQL 已具备完整业务 schema 与必要最小权限；AppSecret 和数据库密码只留在服务端。
+- 当前设备会向 `https://api-bdc.net` 查询地点名称；按实际服务配置 request 域名，并在隐私指引中披露定位坐标用途、第三方地名服务及宝宝资料处理。定位、选点与手机号授权须由项目账号完成相关声明/能力配置。
+- 按实际用途确认 Open-Meteo 商业使用授权/API Key；可选自建 Nominatim 只用于服务端补充。不要把公共 Nominatim 端点直接当生产后端。
+- 在真机依次验证：首次手机号授权/拒绝、冷启动恢复、创建与编辑宝宝、切换多个宝宝、定位拒绝/设置重新授权/选点取消、下拉刷新、断网重试、退出后返回、不同账号数据隔离。
+- 公开共享 Demo 已从 C 端界面移除，代码会拒绝该身份登录与既有会话；新增 `20261028010000_disable_shared_demo_account.sql` 用于停用该共享账户并撤销令牌，**该迁移仍待评审与执行，未执行线上迁移，未删除历史数据**。
+- 如产品需要全设备退出、整个会话族撤销、账号/资料删除或注销，应另行设计并验收；本次已实现的单对令牌撤销不覆盖这些功能。
+
+在上述验收和账号配置完成前，源码通过自动化检查不代表已经具备提交审核或正式发布的全部条件。

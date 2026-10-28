@@ -1,6 +1,11 @@
 {
   "miniprogramRoot": "./",
   "projectname": "warmrobot",
-  "appid": "touristappid",
-  "setting": { "es6": true, "minified": true }
+  "appid": "wx5bcd9ff27d89c386",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "enhance": true
+  },
+  "compileType": "miniprogram"
 }

@@ -1,6 +1,19 @@
 <view class="page">
-  <view class="heading">当地天气</view>
-  <view class="hint">根据当前位置的天气查看宝宝穿衣参考</view>
+  <view class="brand-row">
+    <view>
+      <view class="heading">暖宝宝</view>
+      <view class="hint">把天气，变成刚刚好的穿衣参考</view>
+    </view>
+  </view>
+
+  <button class="baby-card" bindtap="openProfiles">
+    <view class="baby-symbol">♡</view>
+    <view class="baby-copy">
+      <view class="baby-name">{{baby ? baby.name : '宝宝档案'}}</view>
+      <view class="baby-caption">{{baby ? '查看、编辑或切换宝宝' : '添加宝宝，让建议更适合 TA'}}</view>
+    </view>
+    <text class="baby-arrow">›</text>
+  </button>
 
   <view wx:if="{{weather}}" class="weather-card">
     <view class="location-row">
@@ -22,9 +35,73 @@
   <view wx:else class="hint loading">获取当前位置，或手动选择地点查看天气。</view>
 
   <view wx:if="{{error}}" class="error">{{error}}</view>
-  <button class="primary" loading="{{loading}}" disabled="{{loading}}" bindtap="refreshCurrentLocation">使用当前位置</button>
-  <button class="secondary" disabled="{{loading}}" bindtap="selectLocation">手动选择地点</button>
+  <view class="location-actions">
+    <button class="primary" loading="{{loading}}" disabled="{{loading}}" bindtap="refreshCurrentLocation">使用当前位置</button>
+    <button class="secondary" disabled="{{loading}}" bindtap="selectLocation">手动选地点</button>
+  </view>
   <button wx:if="{{error}}" class="settings" bindtap="openSettings">打开定位设置</button>
+
+  <view class="advice-section">
+    <view class="section-heading">
+      <text class="section-title">今日穿搭</text>
+      <text wx:if="{{recommendedDate}}" class="source">{{recommendedDate}}</text>
+    </view>
+    <view wx:if="{{adviceLoading || loading}}" class="state-card hint">正在为宝宝整理穿衣建议…</view>
+    <view wx:elif="{{adviceError}}" class="state-card">
+      <view class="error">{{adviceError}}</view>
+      <button class="secondary" bindtap="refreshAdvice">重新加载建议</button>
+    </view>
+    <view wx:elif="{{adviceStatus === 'needs_baby'}}" class="state-card">
+      <view class="state-title">先认识一下宝宝</view>
+      <view class="hint">填写生日、体感偏好等信息，获取适合宝宝的穿搭建议。</view>
+      <button class="primary" bindtap="openProfiles">添加宝宝档案</button>
+    </view>
+    <view wx:elif="{{adviceStatus === 'needs_location'}}" class="state-card">
+      <view class="state-title">还需要一个地点</view>
+      <view class="hint">使用当前位置，或点击上方“手动选地点”，即可生成当地的穿衣建议。</view>
+    </view>
+    <view wx:elif="{{adviceStatus === 'weather_unavailable'}}" class="state-card">
+      <view class="state-title">天气暂时没准备好</view>
+      <view class="hint">没有可靠的天气时，不会猜测宝宝该穿什么。请稍后重试。</view>
+      <button class="secondary" bindtap="refreshAdvice">重试</button>
+    </view>
+    <block wx:elif="{{advice}}">
+      <view class="conclusion-card">
+        <view class="advice-for">{{baby.name}}的今日参考</view>
+        <view wx:if="{{conclusion}}" class="conclusion">{{conclusion}}</view>
+        <view wx:if="{{dressingMethod}}" class="dressing-method">
+          <view class="method-title">{{dressingMethod.title}}</view>
+          <view class="method-steps">
+            <text wx:for="{{dressingMethod.steps}}" wx:key="*this">{{item}}</text>
+          </view>
+          <view class="hint">{{dressingMethod.note}}</view>
+        </view>
+        <view wx:if="{{advice.tags.length}}" class="tag-list">
+          <text wx:for="{{advice.tags}}" wx:key="code" class="tag">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="outfit-list">
+        <view wx:for="{{advice.outfitItems}}" wx:key="key" class="outfit-item">
+          <view class="item-number">{{index + 1}}</view>
+          <view class="item-copy">
+            <view class="item-title">{{item.label}}</view>
+            <view wx:if="{{item.subtitle}}" class="item-subtitle">{{item.subtitle}}</view>
+            <view wx:if="{{item.pros}}" class="item-detail">{{item.pros}}</view>
+            <view wx:if="{{item.cons}}" class="item-caution">留意：{{item.cons}}</view>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{advice.extras.length}}" class="extras-card">
+        <view class="state-title">出门记得带</view>
+        <view wx:for="{{advice.extras}}" wx:key="key" class="extra-item">
+          <text class="extra-label">{{item.label}}</text>
+          <text class="hint">{{item.reason}}</text>
+        </view>
+      </view>
+      <view class="advice-note">建议仅作日常穿衣参考，请结合宝宝实际冷热、活动和室内外环境灵活增减。</view>
+    </block>
+  </view>
+
   <view class="credit">天气数据：Open-Meteo · 地名服务：BigDataCloud / OpenStreetMap</view>
-  <button class="logout" bindtap="logout">退出登录</button>
+  <button class="logout" bindtap="logout" disabled="{{loggingOut}}" loading="{{loggingOut}}">{{loggingOut ? '正在退出…' : '退出登录'}}</button>
 </view>

@@ -15,3 +15,39 @@
 .secondary { margin-top: 20rpx; color: #d96845; background: #fff; border: 2rpx solid #d96845; border-radius: 999rpx; }
 .settings, .logout { margin-top: 20rpx; background: transparent; color: #806d62; font-size: 25rpx; }
 .credit { margin-top: 36rpx; color: #806d62; text-align: center; font-size: 22rpx; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; }
+.baby-card { display: flex; align-items: center; gap: 22rpx; width: 100%; margin-top: 32rpx; padding: 28rpx; border: 2rpx solid #edddce; border-radius: 28rpx; background: #fffaf5; text-align: left; line-height: 1.5; }
+.baby-card::after { border: 0; }
+.baby-symbol { display: flex; align-items: center; justify-content: center; width: 76rpx; height: 76rpx; flex-shrink: 0; border-radius: 50%; background: #f8e4d8; color: #c76545; font-size: 48rpx; }
+.baby-copy { flex: 1; min-width: 0; }
+.baby-name { font-size: 32rpx; font-weight: 600; overflow-wrap: anywhere; }
+.baby-caption { margin-top: 5rpx; font-size: 23rpx; color: #806d62; }
+.baby-arrow { font-size: 44rpx; color: #b08062; }
+.location-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.location-actions button { flex: 1; margin: 0; padding: 0 12rpx; font-size: 27rpx; }
+.advice-section { margin-top: 52rpx; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; margin-bottom: 22rpx; }
+.section-title { font-size: 38rpx; font-weight: 700; }
+.state-card, .conclusion-card, .extras-card { padding: 32rpx; border-radius: 28rpx; background: #fffcf7; border: 2rpx solid #edddce; }
+.state-card .error { margin-top: 0; }
+.state-title { font-size: 30rpx; font-weight: 600; }
+.advice-for { font-size: 24rpx; color: #9c654c; margin-bottom: 14rpx; }
+.conclusion { font-size: 29rpx; line-height: 1.85; white-space: pre-line; }
+.dressing-method { margin-top: 24rpx; padding-top: 22rpx; border-top: 2rpx dashed #e7d6c6; }
+.method-title { font-size: 28rpx; font-weight: 600; }
+.method-steps { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 14rpx; font-size: 25rpx; }
+.method-steps text { padding: 6rpx 14rpx; background: #f3e8dc; border-radius: 12rpx; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 24rpx; }
+.tag { font-size: 23rpx; color: #93613e; background: #f8ead6; border-radius: 999rpx; padding: 7rpx 18rpx; }
+.outfit-list { display: flex; flex-direction: column; gap: 16rpx; margin-top: 20rpx; }
+.outfit-item { display: flex; gap: 20rpx; padding: 28rpx; background: #fff; border-radius: 24rpx; border: 2rpx solid #f0e7de; }
+.item-number { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 48rpx; height: 48rpx; border-radius: 50%; background: #f8e7db; color: #ac6547; font-size: 24rpx; font-weight: 600; }
+.item-copy { flex: 1; min-width: 0; }
+.item-title { font-size: 31rpx; font-weight: 600; }
+.item-subtitle { margin-top: 8rpx; font-size: 24rpx; color: #9a705a; }
+.item-detail, .item-caution { margin-top: 12rpx; font-size: 25rpx; line-height: 1.75; color: #806d62; }
+.item-caution { color: #9b704a; }
+.extras-card { margin-top: 20rpx; background: #fff8e8; }
+.extra-item { display: flex; flex-direction: column; gap: 5rpx; margin-top: 18rpx; }
+.extra-label { font-size: 28rpx; font-weight: 600; }
+.advice-note { margin: 24rpx 8rpx 0; font-size: 23rpx; line-height: 1.75; color: #8f7b6d; }

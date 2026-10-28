@@ -1,6 +1,8 @@
 # 暖宝宝
 
-Web 端应用：根据天气与宝宝档案，给出今日穿搭**类型建议**（无需录入衣柜）。
+Web 与微信小程序：根据天气与宝宝档案，给出今日穿搭**类型建议**（无需录入衣柜）。
+
+微信小程序已包含登录、宝宝档案、天气与穿衣建议的原生页面；联调与发布前检查见 [`miniprogram/README.md`](miniprogram/README.md)。
 
 ## 前置条件
 
@@ -58,3 +60,17 @@ warmrobot/
 - 部署：Web 与 Admin 均为 Next.js 容器，由 Nginx/Caddy 反向代理并终结 HTTPS。
 
 部署说明见 [`docs/deployment/docker-postgresql.md`](docs/deployment/docker-postgresql.md)。
+
+## 安全依赖基线
+
+Next.js 保持 15.x，最低使用 `15.5.28`；图片处理使用 `sharp >=0.35.5`，匹配项目 Node.js 22+ 环境。该组合修复上游已披露的图片优化漏洞，见 [Next.js 官方公告](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw) 与 [sharp 官方公告](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w)。
+
+Next.js 15 的依赖声明仍固定旧版 PostCSS，根 `package.json` 使用同主版本 override 将其约束到 `>=8.5.23`，并显式声明共享 Next 开发工具依赖，避免 npm 在仅有 workspace 间接依赖时遗漏 override；不要在后续更新锁文件时移除此约束，除非上游已包含修复并重新通过审计。保持 `package-lock.json`，安装用 `npm ci`。发布候选至少重跑：
+
+```bash
+npm test
+npm run verify
+npm audit --omit=dev --audit-level=high
+```
+
+审计只反映当时已知依赖公告，不替代权限、隐私和真实环境验收。

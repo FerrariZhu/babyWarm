@@ -1,3 +1,4 @@
+import { isBlockedSharedDemoAccount } from "@/lib/auth/consumer-account-policy";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { getBearerToken } from "@/lib/auth/bearer-token";
@@ -54,7 +55,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       ? getBearerToken(authorization)
       : cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
   if (!token) return null;
-  return queryOne<AppUser>(
+  const user = await queryOne<AppUser>(
     `SELECT a.id, a.email, a.phone, coalesce(p.display_name, a.display_name) AS "displayName"
        FROM public.app_sessions s
        JOIN public.app_accounts a ON a.id = s.principal_id
@@ -66,6 +67,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
         AND a.is_active = true`,
     [digestSessionToken(token)]
   );
+  return user && !isBlockedSharedDemoAccount(user.email) ? user : null;
 }
 
 export function sessionCookieOptions() {

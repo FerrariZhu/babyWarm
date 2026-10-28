@@ -59,33 +59,6 @@ export default function LoginPage() {
             {error && <p role="alert" className="rounded-xl bg-error-container px-3 py-2 font-body-md text-on-error-container">{error}</p>}
             <button type="submit" data-analytics-action="submit_login" disabled={loading} className="font-label-caps min-h-12 w-full rounded-xl bg-primary py-3 text-on-primary disabled:opacity-60">{loading ? "登录中…" : "登录"}</button>
           </form>
-          <aside aria-label="测试账号" className="mt-6 border-t border-surface-container-high pt-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="font-label-caps text-on-surface">测试账号</h2>
-                <p className="mt-1 font-body-md text-sm text-on-surface-variant">无需注册，直接体验完整流程</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("demo_user_1@warmrobot.dev");
-                  setPassword("password123");
-                  setError(null);
-                }}
-                className="font-label-caps min-h-11 shrink-0 rounded-full bg-primary-fixed px-4 text-sm text-primary transition-colors hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >填入测试账号</button>
-            </div>
-            <dl className="mt-3 space-y-2 font-body-md text-sm">
-              <div className="flex items-start justify-between gap-4">
-                <dt className="shrink-0 text-on-surface-variant">邮箱</dt>
-                <dd className="break-all text-right font-medium text-on-surface">demo_user_1@warmrobot.dev</dd>
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <dt className="shrink-0 text-on-surface-variant">密码</dt>
-                <dd className="text-right font-medium text-on-surface">password123</dd>
-              </div>
-            </dl>
-          </aside>
           <p className="mt-5 text-center font-body-md text-sm text-on-surface-variant">微信小程序请使用“微信手机号登录”。</p>
         </section>
       </main>

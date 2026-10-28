@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
 import { createBabyProfile } from "@/lib/babies/create-baby";
+import { isValidBabyBirthDate, isValidBabyName } from "@/lib/babies/validation";
+import { listBabyProfiles } from "@/lib/babies/list-babies";
 import { getCurrentUser } from "@/lib/self-hosted/auth";
-import { withTransaction } from "@/lib/self-hosted/database";
+import { query, withTransaction } from "@/lib/self-hosted/database";
 import { isBabyGender, isWarmthPreference, isWearsDiaperChoice, wearsDiaperFromChoice } from "@/lib/baby-profile";
 import { suggestBabyCurrentSize } from "@/lib/suggest-size";
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    const babies = await listBabyProfiles(query, user.id);
+    return NextResponse.json({ babies }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    console.error("[babies/list]", error);
+    return NextResponse.json({ error: "读取宝宝档案失败，请稍后重试" }, { status: 503 });
+  }
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -19,11 +33,11 @@ export async function POST(request: Request) {
   const warmthPreference =
     body.warmth_preference != null ? String(body.warmth_preference) : "";
 
-  if (!name) {
-    return NextResponse.json({ error: "请输入宝宝名字" }, { status: 400 });
+  if (!isValidBabyName(body.name)) {
+    return NextResponse.json({ error: "请输入宝宝名字（最多 80 字）" }, { status: 400 });
   }
-  if (!birthDate || typeof birthDate !== "string") {
-    return NextResponse.json({ error: "请选择生日" }, { status: 400 });
+  if (!isValidBabyBirthDate(birthDate)) {
+    return NextResponse.json({ error: "请选择有效生日，不能晚于今天" }, { status: 400 });
   }
   if (!isBabyGender(gender)) {
     return NextResponse.json({ error: "请选择性别" }, { status: 400 });

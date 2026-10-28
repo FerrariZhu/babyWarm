@@ -18,5 +18,13 @@
     "lint": "npm run lint -w web",
     "lint:admin": "npm run lint -w admin",
     "verify": "npm run lint && npm run lint:admin && npm run typecheck -w packages/core && npx tsc --noEmit -p web/tsconfig.json && npx tsc --noEmit -p admin/tsconfig.json && npm run build && npm run build:admin"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.23"
+    }
+  },
+  "devDependencies": {
+    "next": "^15.5.28"
   }
 }

@@ -1,0 +1,47 @@
+<view class="page">
+  <block wx:if="{{mode === 'list'}}">
+    <view class="heading">宝宝档案</view>
+    <view class="hint">为每个宝宝保存信息，穿衣建议会随所选档案调整。</view>
+    <view wx:if="{{loading}}" class="hint empty">正在加载宝宝档案…</view>
+    <view wx:elif="{{!babies.length ? !error : false}}" class="card empty">
+      <view class="empty-title">先认识一下宝宝</view>
+      <view class="hint">添加生日、身高和体重，开始查看今天的穿衣建议。</view>
+    </view>
+    <view wx:for="{{babies}}" wx:key="id" class="card baby-card">
+      <view class="baby-heading"><text class="baby-name">{{item.name}}</text><text wx:if="{{selectedId === item.id}}" class="selected-tag">当前宝宝</text></view>
+      <view class="hint">{{item.genderLabel}} · {{item.birth_date}} 出生</view>
+      <view class="details">身高 {{item.height_cm || '—'}} cm · 体重 {{item.weight_kg || '—'}} kg</view>
+      <view class="hint">温度偏好：{{item.warmthLabel}}</view>
+      <view class="card-actions">
+        <button class="small secondary" data-id="{{item.id}}" bindtap="editBaby">编辑档案</button>
+        <button class="small primary" data-id="{{item.id}}" bindtap="selectBaby">查看穿衣建议</button>
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button wx:if="{{error}}" class="secondary" bindtap="loadBabies" disabled="{{loading}}">重新加载</button>
+    <button class="primary" bindtap="addBaby">添加宝宝</button>
+    <button class="quiet" bindtap="goHome">返回首页</button>
+  </block>
+
+  <block wx:else>
+    <view class="heading">{{editingId ? '编辑宝宝档案' : '添加宝宝档案'}}</view>
+    <view class="hint">这些信息仅用于为宝宝生成个性化穿衣参考。</view>
+    <view class="card form-card">
+      <view class="field"><label class="label" for="baby-name">宝宝名字</label><input id="baby-name" value="{{form.name}}" maxlength="80" placeholder="输入宝宝的名字" disabled="{{saving}}" data-field="name" bindinput="changeField" /></view>
+      <view class="field">
+        <view class="label">性别</view>
+        <view class="choices"><button class="choice {{form.gender === 'male' ? 'chosen' : ''}}" data-field="gender" data-value="male" bindtap="changeChoice" disabled="{{saving}}">男孩</button><button class="choice {{form.gender === 'female' ? 'chosen' : ''}}" data-field="gender" data-value="female" bindtap="changeChoice" disabled="{{saving}}">女孩</button></view>
+      </view>
+      <view class="field"><view class="label">生日</view><picker mode="date" value="{{form.birth_date}}" end="{{today}}" disabled="{{saving}}" data-field="birth_date" bindchange="changeField"><view class="picker {{!form.birth_date ? 'placeholder' : ''}}">{{form.birth_date || '请选择生日'}}<text class="arrow">›</text></view></picker></view>
+      <view class="size-fields">
+        <view class="field"><label class="label" for="baby-height">身高（cm）</label><input id="baby-height" type="digit" value="{{form.height_cm}}" placeholder="例如 88" disabled="{{saving}}" data-field="height_cm" bindinput="changeField" /></view>
+        <view class="field"><label class="label" for="baby-weight">体重（kg）</label><input id="baby-weight" type="digit" value="{{form.weight_kg}}" placeholder="例如 12.5" disabled="{{saving}}" data-field="weight_kg" bindinput="changeField" /></view>
+      </view>
+      <view class="field"><view class="label">温度偏好</view><picker range="{{warmthOptions}}" range-key="label" value="{{warmthIndex}}" disabled="{{saving}}" bindchange="changeWarmth"><view class="picker">{{warmthOptions[warmthIndex].label}}<text class="arrow">›</text></view></picker></view>
+      <view class="field last-field"><view class="label">是否仍穿尿布</view><view class="choices"><button class="choice {{form.wears_diaper === 'yes' ? 'chosen' : ''}}" data-field="wears_diaper" data-value="yes" bindtap="changeChoice" disabled="{{saving}}">仍穿尿布</button><button class="choice {{form.wears_diaper === 'no' ? 'chosen' : ''}}" data-field="wears_diaper" data-value="no" bindtap="changeChoice" disabled="{{saving}}">不穿尿布</button></view><view class="hint tip">满 3 岁的小朋友白天可以尝试不穿尿布了。</view></view>
+    </view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button class="primary" loading="{{saving}}" disabled="{{saving}}" bindtap="saveBaby">{{saving ? '正在保存…' : '保存并查看穿衣建议'}}</button>
+    <button class="quiet" disabled="{{saving}}" bindtap="cancelForm">取消</button>
+  </block>
+</view>

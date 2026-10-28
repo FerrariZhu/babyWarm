@@ -1,3 +1,4 @@
+import { isBlockedSharedDemoAccount } from "@/lib/auth/consumer-account-policy";
 import { NextResponse } from "next/server";
 import { createConsumerSession, sessionCookieOptions, verifyPassword } from "@/lib/self-hosted/auth";
 import { queryOne } from "@/lib/self-hosted/database";
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json({ error: "请输入邮箱和密码" }, { status: 400 });
+    }
+
+    if (isBlockedSharedDemoAccount(email)) {
+      return NextResponse.json({ error: "邮箱或密码不正确" }, { status: 401 });
     }
 
     const account = await queryOne<{ id: string; password_hash: string | null }>(

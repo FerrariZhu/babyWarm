@@ -1,3 +1,4 @@
+import { isBlockedSharedDemoAccount } from "@/lib/auth/consumer-account-policy";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createConsumerSession, hashPassword, sessionCookieOptions } from "@/lib/self-hosted/auth";
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
     const password = typeof body.password === "string" ? body.password : "";
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
       return NextResponse.json({ error: "请输入有效邮箱和至少 8 位密码" }, { status: 400 });
+    }
+    if (isBlockedSharedDemoAccount(email)) {
+      return NextResponse.json({ error: "该邮箱不可用于注册" }, { status: 400 });
     }
     const id = randomUUID();
     const account = await queryOne<{ id: string }>(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { isValidBabyBirthDate, isValidBabyId, isValidBabyName } from "@/lib/babies/validation";
 import { localRecommendedDate } from "@/lib/daily-brief/format";
 import { getCurrentUser } from "@/lib/self-hosted/auth";
 import { query, queryOne } from "@/lib/self-hosted/database";
@@ -14,13 +15,21 @@ export async function PATCH(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!isValidBabyId(id)) return NextResponse.json({ error: "宝宝档案编号无效" }, { status: 400 });
+
   const parsed = await parseJsonBody<Record<string, unknown>>(request);
   if (!parsed.ok) return parsed.response;
   const body = parsed.body;
   const updates: Record<string, unknown> = {};
 
-  if (body.name !== undefined) updates.name = String(body.name).trim();
-  if (body.birth_date !== undefined) updates.birth_date = body.birth_date;
+  if (body.name !== undefined) {
+    if (!isValidBabyName(body.name)) return NextResponse.json({ error: "请输入宝宝名字（最多 80 字）" }, { status: 400 });
+    updates.name = body.name.trim();
+  }
+  if (body.birth_date !== undefined) {
+    if (!isValidBabyBirthDate(body.birth_date)) return NextResponse.json({ error: "请选择有效生日，不能晚于今天" }, { status: 400 });
+    updates.birth_date = body.birth_date;
+  }
   if (body.gender !== undefined) {
     if (!isBabyGender(String(body.gender))) {
       return NextResponse.json({ error: "无效的性别" }, { status: 400 });

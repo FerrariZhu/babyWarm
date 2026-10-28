@@ -1,0 +1,31 @@
+.page { padding: 56rpx 40rpx 80rpx; }
+.heading { font-size: 44rpx; font-weight: 700; }
+.hint { margin-top: 12rpx; }
+.card { margin-top: 30rpx; padding: 32rpx; border-radius: 28rpx; background: #fff; box-shadow: 0 10rpx 36rpx rgba(88, 54, 35, .06); }
+.empty { text-align: center; padding-top: 56rpx; padding-bottom: 56rpx; }
+.empty-title { font-size: 34rpx; font-weight: 600; }
+.baby-heading { display: flex; align-items: center; gap: 16rpx; flex-wrap: wrap; }
+.baby-name { font-size: 38rpx; font-weight: 600; overflow-wrap: anywhere; }
+.selected-tag { font-size: 22rpx; color: #a64c2e; background: #fff1e6; padding: 6rpx 16rpx; border-radius: 999rpx; }
+.details { margin-top: 18rpx; font-size: 27rpx; }
+.card-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.small { flex: 1; margin: 0; font-size: 25rpx; padding: 0 12rpx; }
+.secondary { color: #b35032; background: #fff; border: 2rpx solid #d96845; border-radius: 999rpx; }
+.quiet { margin-top: 20rpx; background: transparent; color: #806d62; font-size: 28rpx; }
+.quiet::after { border: 0; }
+.field { margin-bottom: 34rpx; }
+.last-field { margin-bottom: 0; }
+.label { display: block; color: #806d62; font-size: 26rpx; margin-bottom: 14rpx; }
+input, .picker { box-sizing: border-box; width: 100%; min-height: 80rpx; padding: 16rpx 20rpx; border-radius: 16rpx; background: #fff7ef; font-size: 30rpx; }
+input { height: 80rpx; }
+.picker { display: flex; align-items: center; justify-content: space-between; }
+.placeholder, .arrow { color: #9b8a80; }
+.arrow { font-size: 40rpx; line-height: 1; }
+.size-fields { display: flex; gap: 20rpx; }
+.size-fields .field { width: calc(50% - 10rpx); }
+.choices { display: flex; gap: 16rpx; }
+.choice { flex: 1; margin: 0; font-size: 28rpx; color: #806d62; background: #fff7ef; border-radius: 18rpx; border: 2rpx solid transparent; }
+.choice::after { border: 0; }
+.choice.chosen { color: #a64c2e; border-color: #d96845; background: #fff1e6; }
+.tip { font-size: 23rpx; }
+button[disabled] { opacity: .6; }
